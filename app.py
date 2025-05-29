@@ -1,0 +1,58 @@
+import solara
+from mesa.visualization import Slider, SolaraViz, make_plot_component
+from mesa_geo.visualization import make_geospace_component
+from model import Main_model
+
+
+model_params = {
+    "num_of_cars": Slider("Number of Cars", 100, 1, 1000, 10),
+    "speed_limit": Slider("Speed Limit", 40, 1, 100, 1),
+}
+
+
+
+def Main_draw(agent): 
+    """
+    Portrayal Method for canvas
+    """
+    if agent.geometry.geom_type == "Polygon":
+        area = agent.geometry.area
+        if area > 43677.19:
+            portrayal = { # set new building to red
+                "type": "polygon",  
+                "color": "red",  
+            }
+        else:
+            portrayal = {  # set houses to green
+                "type": "polygon",  
+                "color": "green",  
+            }
+    elif agent.geometry.geom_type == "LineString":
+        portrayal = {  # set roads to blue
+            "type": "linestring",  
+            "color": "blue",  
+        }
+    elif agent.geometry.geom_type == "Point":
+        portrayal = {  # set cars to purple
+            "type": "point",  
+            "color": "purple", 
+        }
+
+    return portrayal
+
+
+model = Main_model()
+
+page = SolaraViz(
+    model,
+    [
+        make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"),
+    ],
+    model_params=model_params,
+    name="Neighborhood Project",
+
+)
+
+solara.settings.layout_draggabnle = False
+
+page  # noqa
