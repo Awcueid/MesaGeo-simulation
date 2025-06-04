@@ -90,12 +90,12 @@ class Main_model(mesa.Model):
         buildings_path = "Buildings.geojson"
 
         # Set up roads
-        roads_comp = gpd.read_file(road_path)
+        roads_comp = gpd.read_file(road_path).to_crs(epsg=3857)
         road_agents = ac.from_GeoDataFrame(roads_comp)
         self.space.add_agents(road_agents)
 
         # Set up buildings
-        buildings_comp = gpd.read_file(buildings_path)
+        buildings_comp = gpd.read_file(buildings_path).to_crs(epsg=3857)
         buildings_agents = ac.from_GeoDataFrame(buildings_comp)
         self.space.add_agents(buildings_agents)
         
@@ -108,9 +108,9 @@ class Main_model(mesa.Model):
                 )
 
         # Set up cars
-        car_ac = mg.AgentCreator(Car_agent, model=self,crs=roads_comp.crs)
+        car_ac = mg.AgentCreator(Car_agent, model=self,crs="EPSG:3857")
         car_agents = []
-        for i in range(num_of_cars):
+        for i in range(num_of_cars):  
             # Create car agents with random positions 
             start_node = random.choice(list(self.road_graph.nodes))
             car_agent = car_ac.create_agent(
@@ -119,8 +119,9 @@ class Main_model(mesa.Model):
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
-        
-
+        print("roads_comp.crs:", roads_comp.crs)
+        print("start_node:", start_node)
+        print("Point(start_node):", Point(start_node))
 
     def step(self):
         """Run one step of the model."""
