@@ -12,7 +12,7 @@ from shapely.geometry import LineString, Point
 class Car_agent(mg.GeoAgent):
     """Car agent."""
 
-    def __init__(self, model, geometry, crs,):
+    def __init__(self, model, geometry, crs):
         """Create a new car agent."""
 
         super().__init__(model, geometry, crs)
@@ -42,7 +42,10 @@ class Car_agent(mg.GeoAgent):
 
     def step(self):
         """Advance agent one step."""
+        speed = getattr(self, "speed", 1)
+
         if self.current_index < len(self.path):
+            next_index = min(self.current_index + self.speed, len(self.path) - 1)
             next_pos = self.path[self.current_index]
             self.geometry = Point(next_pos)
             self.current_index += 1
@@ -116,6 +119,7 @@ class Main_model(mesa.Model):
             car_agent = car_ac.create_agent(
                 geometry=Point(start_node),
             )
+            car_agent.speed = speed_limit  # Set speed limit for the car
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
