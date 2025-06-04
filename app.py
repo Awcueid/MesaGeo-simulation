@@ -33,10 +33,13 @@ def Main_draw(agent):
             "color": "blue",  
         }
     elif agent.geometry.geom_type == "Point":
+        print("Drawing point agent",agent.geometry)
         portrayal = {  # set cars to purple
             "type": "point",  
             "color": "purple", 
+            "radius": 5, 
         }
+
 
     return portrayal
 
