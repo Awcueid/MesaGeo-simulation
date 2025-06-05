@@ -1,10 +1,10 @@
 import solara
-from mesa.visualization import Slider, SolaraViz, make_plot_component
+from mesa.visualization import Slider, SolaraViz # add make_plot_component
 from mesa_geo.visualization import make_geospace_component
 from model import Main_model
 
-
 model_params = {
+    # sliders for model parameters
     "num_of_cars": Slider("Number of Cars", 100, 1, 1000, 10),
     "speed_limit": Slider("Speed Limit", 40, 1, 100, 1),
 }
@@ -12,18 +12,17 @@ model_params = {
 
 
 def Main_draw(agent): 
-    """
-    Portrayal Method for canvas
-    """
+    """Portrayal Method for canvas"""
+    
     if agent.geometry.geom_type == "Polygon":
-        area = agent.geometry.area
-        if area > 43677.19:
-            portrayal = { # set new building to red
+        area = agent.geometry.area  
+        if area > 43677.19: # change this to use id later
+            portrayal = { # set new high rise building to red
                 "type": "polygon",  
                 "color": "red",  
             }
         else:
-            portrayal = {  # set houses to green
+            portrayal = {  # set rest of houses to green
                 "type": "polygon",  
                 "color": "green",  
             }
@@ -37,15 +36,14 @@ def Main_draw(agent):
         portrayal = {  # set cars to purple
             "type": "point",  
             "color": "purple", 
-            "radius": 5, 
+            "radius": 5,  # check why size doesent work
         }
-
-
     return portrayal
 
 
 model = Main_model()
 
+# create the solara page
 page = SolaraViz(
     model,
     [
@@ -55,7 +53,5 @@ page = SolaraViz(
     name="Neighborhood Project",
 
 )
-
-solara.settings.layout_draggabnle = False
 
 page  # noqa

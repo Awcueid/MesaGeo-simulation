@@ -10,23 +10,24 @@ from shapely.geometry import LineString, Point
 
 
 class Car_agent(mg.GeoAgent):
-    """Car agent."""
 
     def __init__(self, model, geometry, crs):
-        """Create a new car agent."""
+        """Create a new car agent"""
 
         super().__init__(model, geometry, crs)
-        self.path = []  # List of points
+        # List of points to visit
+        self.path = []  
         self.current_index = 0
 
-
+        # intial path planning
         start_node = self.nearest_node(self.geometry)
         end_node = random.choice(list(self.model.road_graph.nodes))
         self.plan_path(start_node, end_node)
 
     def plan_path(self, start, end):
         try:
-            self.path = nx.shortest_path(
+            # Find the shortest path
+            self.path = nx.shortest_path( 
                 self.model.road_graph,
                 source=start,
                 target=end,
@@ -35,14 +36,15 @@ class Car_agent(mg.GeoAgent):
             self.current_index = 0
         except nx.NetworkXNoPath:
             self.path = []
-
-    def nearest_node(self, point):
+    
+    def nearest_node(self, point): 
+        """Find the nearest node in the road graph"""
         nodes = list(self.model.road_graph.nodes)
         return min(nodes, key=lambda n: point.distance(Point(n)))
 
     def step(self):
-        """Advance agent one step."""
-        speed = getattr(self, "speed", 1)
+        """Advance agent one step"""
+        speed = getattr(self, "speed", 1) # not working
 
         if self.current_index < len(self.path):
             next_index = min(self.current_index + self.speed, len(self.path) - 1)
@@ -58,14 +60,9 @@ class Car_agent(mg.GeoAgent):
 
 
 class Road_agent(mg.GeoAgent):
-    """Schelling segregation agent."""
 
     def __init__(self, model, geometry, crs):
-        """Create a new Schelling agent.
-
-        Args:
-            agent_type: Indicator for the agent's type (minority=1, majority=0)
-        """
+        """Create a new road agent."""
         super().__init__(model, geometry, crs)
 
 
@@ -76,10 +73,8 @@ class Road_agent(mg.GeoAgent):
         return "Agent " + str(self.unique_id)
 
 
-
-
 class Main_model(mesa.Model):
-    """Model class for the Schelling segregation model."""
+    """Main model class for the neighborhood project"""
 
     def __init__(self, num_of_cars=100, speed_limit=40):
         super().__init__()
@@ -102,6 +97,7 @@ class Main_model(mesa.Model):
         buildings_agents = ac.from_GeoDataFrame(buildings_comp)
         self.space.add_agents(buildings_agents)
         
+        # Create a road graph from the roads
         self.road_graph = nx.Graph()
         for i, row in roads_comp.iterrows():
             coords = list(row.geometry.coords)
@@ -111,7 +107,7 @@ class Main_model(mesa.Model):
                 )
 
         # Set up cars
-        car_ac = mg.AgentCreator(Car_agent, model=self,crs="EPSG:3857")
+        car_ac = mg.AgentCreator(Car_agent, model=self,crs="EPSG:3857") # set crs because it breaks otherwise
         car_agents = []
         for i in range(num_of_cars):  
             # Create car agents with random positions 
@@ -123,11 +119,13 @@ class Main_model(mesa.Model):
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
+
+        # debug
         print("roads_comp.crs:", roads_comp.crs)
         print("start_node:", start_node)
         print("Point(start_node):", Point(start_node))
 
     def step(self):
-        """Run one step of the model."""
+        """Run one step of the model"""
         for agent in self.space.agents:
                 agent.step()
