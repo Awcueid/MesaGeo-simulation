@@ -6,12 +6,16 @@ This project is an agent-based simulation of traffic moving through a neighborho
 
 1. **Clone this repository:**
     ```sh
-  gh repo clone Awcueid/MesaGeo-simulation
+    git clone https://github.com/Awcueid/MesaGeo-simulation.git
     ```
-3.  **Install dependencies**
-   pip install mesa mesa-geo solara
+
+2.  **Install dependencies**
+    ```sh
+    pip install mesa mesa-geo solara geopandas shapely networkx
+    ```
 
 4.  **Run the App**
     ```sh
     solara run app.py
     ```
+    visit http://localhost:8765 in your local browser
