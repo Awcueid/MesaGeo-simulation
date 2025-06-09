@@ -5,9 +5,13 @@ This project is an agent-based simulation of traffic moving through a neighborho
 #Installation
 
 1. **Clone this repository:**
+    ```sh
   gh repo clone Awcueid/MesaGeo-simulation
-
-2.  **Install dependencies**
+    ```
+3.  **Install dependencies**
    pip install mesa mesa-geo solara
 
-3.  
+4.  **Run the App**
+    ```sh
+    solara run app.py
+    ```
