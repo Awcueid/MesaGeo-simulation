@@ -9,7 +9,14 @@ model_params = {
     "speed_limit": Slider("Speed Limit", 40, 1, 100, 1),
 }
 
-
+def Time(model):
+    try:
+        # If you use datetime for time
+        time_str = model.sim_time.strftime("%H:%M:%S")
+    except AttributeError:
+        # Fallback to integer steps
+        time_str = str(model.time)
+    return solara.Text(f"Time passed : {time_str} minutes")
 
 def Main_draw(agent): 
     """Portrayal Method for canvas"""
@@ -44,14 +51,16 @@ def Main_draw(agent):
 model = Main_model()
 
 # create the solara page
-page = SolaraViz(
-    model,
+page = solara.Column(
     [
-        make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"),
-    ],
-    model_params=model_params,
-    name="Neighborhood Project",
-
+        SolaraViz(
+            model,
+            [
+                make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"),
+            ],
+            model_params=model_params,
+            name="Neighborhood Project",
+        ),Time(model)
+    ]
 )
-
 page  # noqa

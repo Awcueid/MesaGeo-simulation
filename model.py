@@ -137,6 +137,6 @@ class Main_model(mesa.Model):
 
     def step(self):
         """Run one step of the model"""
-
+        self.time += 5
         for agent in self.space.agents:
                 agent.step()
