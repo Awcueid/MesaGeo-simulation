@@ -8,7 +8,6 @@ from shapely.geometry import LineString, Point
 
 
 
-
 class Car_agent(mg.GeoAgent):
 
     def __init__(self, model, geometry, crs, speed=1):
@@ -46,7 +45,7 @@ class Car_agent(mg.GeoAgent):
     def step(self):
         """Advance agent one step"""
 
-        if self.current_index < len(self.path):
+        if self.current_index < len(self.path) -1:
             next_index = min(self.current_index + self.speed, len(self.path) - 1)
             next_pos = self.path[next_index]
             self.geometry = Point(next_pos)
@@ -59,7 +58,7 @@ class Car_agent(mg.GeoAgent):
 
 
 
-class Road_agent(mg.GeoAgent):
+class Road_agent(mg.GeoAgent): 
 
     def __init__(self, model, geometry, crs):
         """Create a new road agent."""
@@ -73,12 +72,18 @@ class Road_agent(mg.GeoAgent):
         return "Agent " + str(self.unique_id)
 
 
+def interpolate_linestring(line: LineString, spacing=5):
+    """Helper function for points"""
+    return [line.interpolate(distance) 
+        for distance in range(0, int(line.length), spacing)] + [line.interpolate(line.length)]
+
+
 class Main_model(mesa.Model):
     """Main model class for the neighborhood project"""
 
     def __init__(self, num_of_cars=100, speed_limit=40):
         super().__init__()
-
+        self.time = 0
         self.space = mg.GeoSpace(warn_crs_conversion=False)
         self.running = True
 
@@ -99,11 +104,16 @@ class Main_model(mesa.Model):
         
         # Create a road graph from the roads
         self.road_graph = nx.Graph()
+        spacing = 10 
         for i, row in roads_comp.iterrows():
-            coords = list(row.geometry.coords)
-            for start, end in zip(coords[:-1], coords[1:]):
+            line = row.geometry
+            points = interpolate_linestring(line, spacing)
+            #coords = list(row.geometry.coords)
+            for start, end in zip(points[:-1], points[1:]):
+                start_xy = (start.x, start.y)
+                end_xy = (end.x, end.y)
                 self.road_graph.add_edge(
-                    start, end, weight=Point(start).distance(Point(end))
+                    start_xy, end_xy, weight=Point(start_xy).distance(Point(end_xy))
                 )
 
         # Set up cars
@@ -127,5 +137,6 @@ class Main_model(mesa.Model):
 
     def step(self):
         """Run one step of the model"""
+
         for agent in self.space.agents:
                 agent.step()
