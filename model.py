@@ -125,7 +125,7 @@ class Main_model(mesa.Model):
             car_agent = car_ac.create_agent(
                 geometry=Point(start_node),
             )
-            car_agent.speed = speed_limit  # Set speed limit for the car
+            car_agent.speed = int(speed_limit/10)  # Set speed limit for the car
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
