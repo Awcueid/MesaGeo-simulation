@@ -64,15 +64,21 @@ class Car_agent(mg.GeoAgent):
             next_index = min(self.current_index + self.speed, len(self.path) - 1)
             next_pos = self.path[next_index]
 
-            # check all nodes that are occupied
-            occupied_nodes = {
-                tuple(agent.geometry.coords[0])
-                for agent in self.model.space.agents
-                if isinstance(agent, Car_agent) and agent != self
-            }
-
-            # car only moves if not blocked
-            if tuple(next_pos) not in occupied_nodes:
+            # check cars at the next position
+            blocking_cars = [
+                agent for agent in self.model.space.agents
+                if isinstance(agent, Car_agent) and agent != self and tuple(agent.geometry.coords[0]) == tuple(next_pos)
+            ]
+            
+            can_swap = False
+            for other in blocking_cars:
+                if other.current_index < len(other.path) - 1:
+                    other_next_index = min(other.current_index + other.speed, len(other.path) - 1)
+                    other_next_pos = other.path[other_next_index]
+                    if tuple(other_next_pos) == tuple(self.geometry.coords[0]):
+                        can_swap = True
+                        break
+            if not blocking_cars or can_swap:
                 self.geometry = Point(next_pos)
                 self.current_index = next_index
             else:
