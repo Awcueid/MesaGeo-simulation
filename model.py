@@ -21,7 +21,7 @@ class test_agent(mg.GeoAgent):
         self.travel_time = 0
         self.finished = False
         self.plan_path(start_node, end_node)
-        
+
 
 class Car_agent(mg.GeoAgent):
 
@@ -63,14 +63,27 @@ class Car_agent(mg.GeoAgent):
         if self.current_index < len(self.path) -1:
             next_index = min(self.current_index + self.speed, len(self.path) - 1)
             next_pos = self.path[next_index]
-            self.geometry = Point(next_pos)
-            self.current_index = next_index
+
+            # check all nodes that are occupied
+            occupied_nodes = {
+                tuple(agent.geometry.coords[0])
+                for agent in self.model.space.agents
+                if isinstance(agent, Car_agent) and agent != self
+            }
+
+            # car only moves if not blocked
+            if tuple(next_pos) not in occupied_nodes:
+                self.geometry = Point(next_pos)
+                self.current_index = next_index
+            else:
+                print("blocked at", next_pos)
+
+
         else:
             # Plan a new path to a random node
             start_node = self.nearest_node(self.geometry)
             end_node = random.choice(list(self.model.road_graph.nodes))
             self.plan_path(start_node, end_node)
-
 
 
 class Road_agent(mg.GeoAgent): 

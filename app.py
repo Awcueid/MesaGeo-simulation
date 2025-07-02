@@ -5,7 +5,7 @@ from model import Main_model
 
 model_params = {
     # sliders for model parameters
-    "num_of_cars": Slider("Number of Cars", 100, 1, 1000, 10),
+    "num_of_cars": Slider("Number of Cars", 100, 1, 1000, 1),
     "speed_limit": Slider("Speed Limit", 40, 10, 120, 10),
 }
 
