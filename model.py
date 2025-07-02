@@ -6,7 +6,22 @@ import mesa_geo as mg
 from mesa_geo import AgentCreator
 from shapely.geometry import LineString, Point
 
+class test_agent(mg.GeoAgent):
+    """Agent that moves from road a to b to determine time to travel"""
+    
+    def __init__(self, model, geometry, crs,  start_node , end_node, speed=1 ):
+        """Create a new test agent"""
+        super().__init__(model, geometry, crs)
 
+        self.start_node = start_node
+        self.end_node = end_node
+        self.speed = speed
+        self.path = []
+        self.current_index = 0
+        self.travel_time = 0
+        self.finished = False
+        self.plan_path(start_node, end_node)
+        
 
 class Car_agent(mg.GeoAgent):
 
@@ -137,6 +152,7 @@ class Main_model(mesa.Model):
 
     def step(self):
         """Run one step of the model"""
-        self.time += 5
+        self.time += 1
+        print(self.time)
         for agent in self.space.agents:
                 agent.step()
