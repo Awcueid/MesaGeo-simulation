@@ -38,7 +38,7 @@ def Main_draw(agent):
             "type": "linestring",  
             "color": "blue",  
         }
-    elif agent.geometry.geom_type == "Point":
+    elif isinstance(agent, test_agent):
         print("Drawing special agent")
         portrayal = {
             "type": "point",  

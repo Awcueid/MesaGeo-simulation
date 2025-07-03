@@ -6,6 +6,17 @@ import mesa_geo as mg
 from mesa_geo import AgentCreator
 from shapely.geometry import LineString, Point
 
+#helper functuion to get blocking cars
+def get_blocking_cars(space, next_pos, self_agent, agent_type):
+    """Returns list of """
+    return [
+        agent for agent in space.agents
+        if isinstance(agent, agent_type)
+        and agent != self_agent
+        and tuple(agent.geometry.coords[0]) == tuple(next_pos)
+    ]
+
+
 class test_agent(mg.GeoAgent):
     """Agent that moves from road a to b to determine time to travel"""
     
@@ -21,6 +32,26 @@ class test_agent(mg.GeoAgent):
         self.travel_time = 0
         self.finished = False
         self.plan_path(start_node, end_node)
+
+    def plan_path(self, start, end):
+        try:
+            # Find the shortest path
+            self.path = nx.shortest_path( 
+                self.model.road_graph,
+                source=start,
+                target=end,
+                weight="weight"
+            )
+            self.current_index = 0
+        except nx.NetworkXNoPath:
+            self.path = []
+            self.finished = True
+
+    def step(self):
+        next_index = min(self.current_index + self.speed, len(self.path) - 1)
+        next_pos = self.path[next_index]
+
+        blocking_cars = get_blocking_cars(self.model.space,next_pos, self, test_agent)
 
 
 class Car_agent(mg.GeoAgent):
@@ -65,10 +96,7 @@ class Car_agent(mg.GeoAgent):
             next_pos = self.path[next_index]
 
             # check cars at the next position
-            blocking_cars = [
-                agent for agent in self.model.space.agents
-                if isinstance(agent, Car_agent) and agent != self and tuple(agent.geometry.coords[0]) == tuple(next_pos)
-            ]
+            blocking_cars = get_blocking_cars(self.model.space, next_pos, self, Car_agent)
             
             can_swap = False
             for other in blocking_cars:
