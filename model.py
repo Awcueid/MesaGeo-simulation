@@ -6,7 +6,7 @@ import mesa_geo as mg
 from mesa_geo import AgentCreator
 from shapely.geometry import LineString, Point
 
-#helper functuion to get blocking cars
+#helper function to get blocking cars
 def get_blocking_cars(space, next_pos, self_agent, agent_type):
     """Returns list of """
     return [
@@ -48,11 +48,35 @@ class test_agent(mg.GeoAgent):
             self.finished = True
 
     def step(self):
-        next_index = min(self.current_index + self.speed, len(self.path) - 1)
-        next_pos = self.path[next_index]
+        if self.finished or not self.path:
+            return
+        if self.current_index < len(self.path) - 1:
+            next_index = min(self.current_index + self.speed, len(self.path) - 1)
+            next_pos = self.path[next_index]
 
-        blocking_cars = get_blocking_cars(self.model.space,next_pos, self, test_agent)
+            blocking_cars = get_blocking_cars(self.model.space,next_pos, self, test_agent)
 
+            can_swap = False
+            for other in blocking_cars:
+                if other.current_index < len(other.path) - 1:
+                    other_next_index = min(other.current_index + other.speed, len(other.path) - 1)
+                    other_next_pos = other.path[other_next_index]
+                    if tuple(other_next_pos) == tuple(self.geometry.coords[0]):
+                        can_swap = True
+                        break
+
+            if not blocking_cars or can_swap:
+                self.geometry = Point(next_pos)
+                self.current_index = next_index
+                self.travel_time += 1
+                if self.current_index == len(self.path) - 1:
+                    self.finished = True
+                    print(f"Test agent reached destination in {self.travel_time} steps.")
+            else:
+                self.travel_time += 1  # Still count time even if blocked
+        else:
+            self.finished = True
+                
 
 class Car_agent(mg.GeoAgent):
 

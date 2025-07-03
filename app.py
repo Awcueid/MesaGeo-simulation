@@ -1,7 +1,7 @@
 import solara
 from mesa.visualization import Slider, SolaraViz # add make_plot_component
 from mesa_geo.visualization import make_geospace_component
-from model import Main_model
+from model import Main_model, test_agent
 
 model_params = {
     # sliders for model parameters
