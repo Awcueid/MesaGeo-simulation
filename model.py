@@ -215,6 +215,18 @@ class Main_model(mesa.Model):
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
+        nodes = list(self.road_graph.nodes)
+        northmost = max(nodes, key=lambda n: n[1])
+        southmost = min(nodes, key=lambda n: n[1])
+
+        test_ac = mg.AgentCreator(test_agent, model=self, crs="EPSG:3857")
+        test_car = test_ac.create_agent(
+            geometry=Point(southmost),
+        )
+        test_car.start_node = southmost
+        test_car.end_node = northmost
+        test_car.speed = int(speed_limit/10)
+        self.space.add_agents([test_car])
 
         # debug
         print("roads_comp.crs:", roads_comp.crs)
@@ -224,6 +236,6 @@ class Main_model(mesa.Model):
     def step(self):
         """Run one step of the model"""
         self.time += 1
-        print(self.time)
+        #print(self.time)
         for agent in self.space.agents:
                 agent.step()
