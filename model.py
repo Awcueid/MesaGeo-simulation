@@ -20,12 +20,12 @@ def get_blocking_cars(space, next_pos, self_agent, agent_type):
 class test_agent(mg.GeoAgent):
     """Agent that moves from road a to b to determine time to travel"""
     
-    def __init__(self, model, geometry, crs,  start_node , end_node, speed=1 ):
+    def __init__(self, model, geometry, crs, speed=1, ):
         """Create a new test agent"""
         super().__init__(model, geometry, crs)
 
-        self.start_node = start_node
-        self.end_node = end_node
+        start_node = -8965387.52181617, 5387148.721794528
+        end_node = -8968572.588849764, 5383403.789376198
         self.speed = speed
         self.path = []
         self.current_index = 0
@@ -205,9 +205,10 @@ class Main_model(mesa.Model):
         # Set up cars
         car_ac = mg.AgentCreator(Car_agent, model=self,crs="EPSG:3857") # set crs because it breaks otherwise
         car_agents = []
+        nodes = list(self.road_graph.nodes) # Get all nodes from the road graph
         for i in range(num_of_cars):  
             # Create car agents with random positions 
-            start_node = random.choice(list(self.road_graph.nodes))
+            start_node = random.choice(nodes)
             car_agent = car_ac.create_agent(
                 geometry=Point(start_node),
             )
@@ -215,22 +216,20 @@ class Main_model(mesa.Model):
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
-        nodes = list(self.road_graph.nodes)
+        
         northmost = max(nodes, key=lambda n: n[1])
-        southmost = min(nodes, key=lambda n: n[1])
+        #southmost = min(nodes, key=lambda n: n[1])
+
 
         test_ac = mg.AgentCreator(test_agent, model=self, crs="EPSG:3857")
         test_car = test_ac.create_agent(
-            geometry=Point(southmost),
+            geometry=Point(northmost),
         )
-        test_car.start_node = southmost
-        test_car.end_node = northmost
         test_car.speed = int(speed_limit/10)
         self.space.add_agents([test_car])
 
         # debug
         print("roads_comp.crs:", roads_comp.crs)
-        print("start_node:", start_node)
         print("Point(start_node):", Point(start_node))
 
     def step(self):
