@@ -11,12 +11,10 @@ model_params = {
 
 def Time(model):
     try:
-        # If you use datetime for time
         time_str = model.sim_time.strftime("%H:%M:%S")
     except AttributeError:
-        # Fallback to integer steps
         time_str = str(model.time)
-    return solara.Text(f"Time passed : {time_str} minutes")
+    return solara.Text(f"Time passed : {time_str} minutes")  # need to fix 
 
 def Main_draw(agent): 
     """Portrayal Method for canvas"""
@@ -54,7 +52,7 @@ def Main_draw(agent):
         }
     return portrayal
 
-
+# run the model
 model = Main_model()
 
 # create the solara page

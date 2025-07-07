@@ -6,9 +6,9 @@ import mesa_geo as mg
 from mesa_geo import AgentCreator
 from shapely.geometry import LineString, Point
 
-#helper function to get blocking cars
+
 def get_blocking_cars(space, next_pos, self_agent, agent_type):
-    """Returns list of """
+    """Returns list of agents blocking next position"""
     return [
         agent for agent in space.agents
         if isinstance(agent, agent_type)
@@ -21,11 +21,10 @@ class test_agent(mg.GeoAgent):
     """Agent that moves from road a to b to determine time to travel"""
     
     def __init__(self, model, geometry, crs, speed=1, ):
-        """Create a new test agent"""
         super().__init__(model, geometry, crs)
 
-        start_node = -8965387.52181617, 5387148.721794528
-        end_node = -8968572.588849764, 5383403.789376198
+        start_node = -8965387.52181617, 5387148.721794528  # starting at the north most point
+        end_node = -8968572.588849764, 5383403.789376198   # ending at the south most point
         self.speed = speed
         self.path = []
         self.current_index = 0
@@ -79,11 +78,11 @@ class test_agent(mg.GeoAgent):
                 
 
 class Car_agent(mg.GeoAgent):
+    """Create a new car agent"""
 
     def __init__(self, model, geometry, crs, speed=1):
-        """Create a new car agent"""
-
         super().__init__(model, geometry, crs)
+
         # List of points to visit
         self.path = []  
         self.current_index = 0
@@ -113,7 +112,7 @@ class Car_agent(mg.GeoAgent):
         return min(nodes, key=lambda n: point.distance(Point(n)))
 
     def step(self):
-        """Advance agent one step"""
+        """Advance car agent one step"""
 
         if self.current_index < len(self.path) -1:
             next_index = min(self.current_index + self.speed, len(self.path) - 1)
@@ -134,7 +133,7 @@ class Car_agent(mg.GeoAgent):
                 self.geometry = Point(next_pos)
                 self.current_index = next_index
             else:
-                print("blocked at", next_pos)
+                print("blocked at", next_pos) # testing
 
 
         else:
@@ -145,14 +144,12 @@ class Car_agent(mg.GeoAgent):
 
 
 class Road_agent(mg.GeoAgent): 
-
+    """Create a new road agent."""
     def __init__(self, model, geometry, crs):
-        """Create a new road agent."""
         super().__init__(model, geometry, crs)
 
-
     def step(self):
-        """Advance agent one step."""
+        """Advance road agent one step."""
 
     def __repr__(self):
         return "Agent " + str(self.unique_id)
@@ -169,6 +166,7 @@ class Main_model(mesa.Model):
 
     def __init__(self, num_of_cars=100, speed_limit=40):
         super().__init__()
+
         self.time = 0
         self.space = mg.GeoSpace(warn_crs_conversion=False)
         self.running = True
@@ -229,11 +227,12 @@ class Main_model(mesa.Model):
         self.space.add_agents([test_car])
 
         # debug
-        print("roads_comp.crs:", roads_comp.crs)
-        print("Point(start_node):", Point(start_node))
+        #print("roads_comp.crs:", roads_comp.crs)
+        #print("Point(start_node):", Point(start_node))
 
     def step(self):
         """Run one step of the model"""
+        
         self.time += 1
         #print(self.time)
         for agent in self.space.agents:
