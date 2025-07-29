@@ -6,15 +6,18 @@ from model import Main_model, test_agent
 model_params = {
     # sliders for model parameters
     "num_of_cars": Slider("Number of Cars", 100, 1, 1000, 1),
-    "speed_limit": Slider("Speed Limit", 40, 10, 120, 10),
 }
 
 def Time(model):
+    """Display formatted simulation time"""
     try:
-        time_str = model.sim_time.strftime("%H:%M:%S")
+        hours = int(model.sim_time.total_seconds() // 3600)
+        minutes = int((model.sim_time.total_seconds() % 3600) // 60)
+        seconds = int(model.sim_time.total_seconds() % 60)
+        time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        return solara.Text(f"Simulation time: {time_str}")
     except AttributeError:
-        time_str = str(model.time)
-    return solara.Text(f"Time passed : {time_str} minutes")  # need to fix 
+        return solara.Text("Time not available")
 
 def Main_draw(agent): 
     """Portrayal Method for canvas"""

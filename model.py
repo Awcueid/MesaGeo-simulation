@@ -166,10 +166,11 @@ class Main_model(mesa.Model):
 
     def __init__(self, num_of_cars=100, speed_limit=40):
         super().__init__()
-
+        
         self.time = 0
         self.space = mg.GeoSpace(warn_crs_conversion=False)
         self.running = True
+        self.speed_limit = speed_limit
 
         # read in the geojson files
         ac = mg.AgentCreator(Road_agent, model=self)
@@ -188,7 +189,7 @@ class Main_model(mesa.Model):
         
         # Create a road graph from the roads
         self.road_graph = nx.Graph()
-        spacing = 10 
+        spacing = 1
         for i, row in roads_comp.iterrows():
             line = row.geometry
             points = interpolate_linestring(line, spacing)
@@ -232,7 +233,16 @@ class Main_model(mesa.Model):
 
     def step(self):
         """Run one step of the model"""
-        
+
+        node_distance = 10  # meters between nodes
+        speed_limit = self.speed_limit  # km/h
+        v_mps = speed_limit * 1000 / 3600
+        time_increment = node_distance / v_mps / 60  # minutes per step
+
+        self.time += time_increment
+        for agent in self.space.agents:
+            agent.step()
+
         self.time += 1
         #print(self.time)
         for agent in self.space.agents:
