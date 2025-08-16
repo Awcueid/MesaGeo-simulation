@@ -5,6 +5,7 @@ import random
 import mesa_geo as mg
 from mesa_geo import AgentCreator
 from shapely.geometry import LineString, Point
+from datetime import datetime, timedelta
 
 
 def get_blocking_cars(space, next_pos, self_agent, agent_type):
@@ -84,7 +85,7 @@ class Car_agent(mg.GeoAgent):
         super().__init__(model, geometry, crs)
 
         # List of points to visit
-        self.path = []  
+        self.path = []
         self.current_index = 0
         self.speed = speed
 
@@ -143,18 +144,6 @@ class Car_agent(mg.GeoAgent):
             self.plan_path(start_node, end_node)
 
 
-class Road_agent(mg.GeoAgent): 
-    """Create a new road agent."""
-    def __init__(self, model, geometry, crs):
-        super().__init__(model, geometry, crs)
-
-    def step(self):
-        """Advance road agent one step."""
-
-    def __repr__(self):
-        return "Agent " + str(self.unique_id)
-
-
 def interpolate_linestring(line: LineString, spacing=5):
     """Helper function for points"""
     return [line.interpolate(distance) 
@@ -167,29 +156,29 @@ class Main_model(mesa.Model):
     def __init__(self, num_of_cars=100, speed_limit=40):
         super().__init__()
         
-        self.time = 0
+        self.start_time = datetime.now()
+        self.sim_time = timedelta(seconds=0)
         self.space = mg.GeoSpace(warn_crs_conversion=False)
         self.running = True
         self.speed_limit = speed_limit
 
         # read in the geojson files
-        ac = mg.AgentCreator(Road_agent, model=self)
         road_path = "Roads.geojson"
         buildings_path = "Buildings.geojson"
 
         # Set up roads
         roads_comp = gpd.read_file(road_path).to_crs(epsg=3857)
-        road_agents = ac.from_GeoDataFrame(roads_comp)
+        road_agents = [mg.GeoAgent(self, geometry=geom, crs=roads_comp.crs) for geom in roads_comp.geometry]
         self.space.add_agents(road_agents)
 
         # Set up buildings
         buildings_comp = gpd.read_file(buildings_path).to_crs(epsg=3857)
-        buildings_agents = ac.from_GeoDataFrame(buildings_comp)
+        buildings_agents = [mg.GeoAgent(self, geometry=geom, crs=buildings_comp.crs) for geom in buildings_comp.geometry]
         self.space.add_agents(buildings_agents)
         
         # Create a road graph from the roads
         self.road_graph = nx.Graph()
-        spacing = 1
+        spacing = 5  # Increased spacing to 50 meters between points
         for i, row in roads_comp.iterrows():
             line = row.geometry
             points = interpolate_linestring(line, spacing)
@@ -211,7 +200,7 @@ class Main_model(mesa.Model):
             car_agent = car_ac.create_agent(
                 geometry=Point(start_node),
             )
-            car_agent.speed = int(speed_limit/10)  # Set speed limit for the car
+            car_agent.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
@@ -224,7 +213,7 @@ class Main_model(mesa.Model):
         test_car = test_ac.create_agent(
             geometry=Point(northmost),
         )
-        test_car.speed = int(speed_limit/10)
+        test_car.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
         self.space.add_agents([test_car])
 
         # debug
@@ -233,17 +222,7 @@ class Main_model(mesa.Model):
 
     def step(self):
         """Run one step of the model"""
-
-        node_distance = 10  # meters between nodes
-        speed_limit = self.speed_limit  # km/h
-        v_mps = speed_limit * 1000 / 3600
-        time_increment = node_distance / v_mps / 60  # minutes per step
-
-        self.time += time_increment
+        self.sim_time += timedelta(seconds=1)
+        
         for agent in self.space.agents:
             agent.step()
-
-        self.time += 1
-        #print(self.time)
-        for agent in self.space.agents:
-                agent.step()

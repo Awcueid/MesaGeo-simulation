@@ -5,7 +5,7 @@ from model import Main_model, test_agent
 
 model_params = {
     # sliders for model parameters
-    "num_of_cars": Slider("Number of Cars", 100, 1, 1000, 1),
+    "num_of_cars": Slider("Number of Cars", 30, 1, 1000, 1),
 }
 
 def Time(model):
