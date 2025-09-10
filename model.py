@@ -3,7 +3,6 @@ import networkx as nx
 import mesa
 import random
 import mesa_geo as mg
-from mesa_geo import AgentCreator
 from shapely.geometry import LineString, Point
 from datetime import datetime, timedelta
 
