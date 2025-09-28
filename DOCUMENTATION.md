@@ -1,22 +1,20 @@
 # Traffic Simulation Model Documentation
 
 ## Overview
-This is a traffic simulation model built using the Mesa agent-based modeling framework. The simulation models cars moving through a real road network loaded from GeoJSON data, with realistic traffic flow, congestion, and capacity constraints.
+This is a traffic simulation model built using the Mesa agent-based modeling framework. The simulation models cars moving through a real road network loaded from GeoJSON data, with realistic traffic flow and congestion.
 
 ## Core Components
 
 ### 1. Road Network Infrastructure
 
 #### RoadSegment Class
-Think of a road segment as a single stretch of road between two intersections - like the block between Main Street and First Avenue. Each segment has these properties:
+Think of a road segment as a single stretch of road between two intersections. If you imagine a city block, each side of the block would be a separate road segment.
+Each segment has these properties:
 
 - **Geometry**: The actual shape and path of the road segment
 - **Length**: How long the segment is in meters
-- **Capacity**: Maximum number of cars that can be on this segment at once
 - **Current Occupants**: Which cars are currently driving on this segment
 - **Start and End Points**: The intersections this segment connects
-
-Real-world analogy: If you imagine a city block, each side of the block would be a separate road segment.
 
 #### Road Network Creation
 The model takes real geographic data (GeoJSON) and converts it into a network of road segments:
@@ -42,7 +40,6 @@ Each car in the simulation is an independent agent that makes its own decisions:
 - When they reach intersections, they choose the next road segment based on their planned route
 
 **Traffic Rules**:
-- Cars cannot enter a road segment if it's already at capacity (traffic jam)
 - When blocked, cars wait at their current position until space opens up
 - Cars respect the directional flow of traffic
 
@@ -55,8 +52,6 @@ There's a special red car that demonstrates the system:
 ### 3. Traffic Management System
 
 #### Capacity Management
-Each road segment has a maximum capacity (like real roads):
-- **Realistic Limits**: Narrow streets hold fewer cars than highways
 - **Congestion Effects**: When segments fill up, traffic jams form
 - **Dynamic Flow**: Cars must wait for space to open up before proceeding
 
@@ -64,7 +59,6 @@ Each road segment has a maximum capacity (like real roads):
 The simulation ensures realistic traffic flow:
 - **Speed Consistency**: All cars move at the same base speed
 - **Segment-Based Movement**: Cars progress along entire road segments, not just point-to-point
-- **Smooth Animation**: Cars appear to drive smoothly along the road curves
 
 ### 4. Simulation Control
 
@@ -78,7 +72,7 @@ This is the "brain" of the simulation that coordinates everything:
 - Sets up the special test agent
 
 **Step-by-Step Execution**:
-- Each simulation step represents a small time interval
+- Each simulation step represents a small time interval (one second)
 - All cars move simultaneously during each step
 - The model tracks overall statistics and manages the simulation flow
 
@@ -94,7 +88,7 @@ Uses Mesa's built-in scheduler to manage when each car takes its turn:
 The simulation runs in a web browser showing:
 - **Interactive Map**: Real road network with cars moving along streets
 - **Real-Time Animation**: Cars moving smoothly through the network
-- **Visual Feedback**: Different colors for different types of agents
+- **Test car**: Red color for the test car
 
 #### Control Parameters
 Users can adjust the simulation through sliders:
@@ -103,11 +97,6 @@ Users can adjust the simulation through sliders:
 - Controls how many regular cars are in the simulation
 - More cars create more traffic and congestion
 - Fewer cars show individual movement patterns more clearly
-
-**Segment Capacity** (1-20):
-- Sets how many cars can be on each road segment simultaneously
-- Lower capacity creates more traffic jams
-- Higher capacity allows freer flow but less realistic congestion
 
 ### 6. Data Flow
 
@@ -159,50 +148,3 @@ Users can adjust the simulation through sliders:
 - Central coordination of all components
 - Network initialization and management
 - Simulation stepping and timing
-
-### Movement Physics
-- **Distance-Based Movement**: Cars move a fixed distance (2 meters) per step
-- **Variable Segment Lengths**: System accounts for different road lengths
-- **Smooth Interpolation**: Position calculated as percentage along segment
-- **Realistic Speed**: Equivalent to real-world urban driving speeds
-
-## Key Features
-
-### Realistic Traffic Simulation
-- **Geographic Accuracy**: Uses real street layouts from map data
-- **Traffic Congestion**: Cars get stuck in traffic when roads are full
-- **Natural Flow**: Traffic patterns emerge from individual car behaviors
-
-### Educational Value
-- **Agent-Based Modeling**: Demonstrates how complex systems emerge from simple rules
-- **Urban Planning**: Shows how road capacity affects traffic flow
-- **Real-World Application**: Uses actual geographic data for realistic scenarios
-
-### Technical Innovation
-- **Efficient Processing**: Handles hundreds of cars simultaneously
-- **Smooth Animation**: Cars move along curved roads, not just straight lines
-- **Interactive Control**: Real-time adjustment of simulation parameters
-
-## Use Cases
-
-This simulation can be used for:
-- **Education**: Teaching about traffic flow and urban planning
-- **Research**: Studying how different road capacities affect congestion
-- **Planning**: Testing how changes to road networks might affect traffic
-- **Demonstration**: Showing how agent-based models work in practice
-
-## Getting Started
-
-1. **Run the Simulation**: Execute `solara run app.py` to start the web interface
-2. **Adjust Parameters**: Use the sliders to change number of cars and segment capacity
-3. **Observe Behavior**: Watch how traffic patterns develop and change
-4. **Experiment**: Try different settings to see how they affect traffic flow
-
-## Understanding the Visualization
-
-- **Purple Dots**: Regular cars following their planned routes
-- **Red Dot**: Special test agent traveling from north to south
-- **Blue Lines**: Road network showing available paths
-- **Green Shapes**: Buildings providing geographic context
-
-The simulation provides a realistic but simplified view of urban traffic that's both educational and engaging to watch and interact with.
