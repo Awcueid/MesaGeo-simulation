@@ -6,17 +6,6 @@ import mesa_geo as mg
 from shapely.geometry import LineString, Point
 from datetime import datetime, timedelta
 
-
-def get_blocking_cars(space, next_pos, self_agent, agent_type):
-    """Returns list of agents blocking next position"""
-    return [
-        agent for agent in space.agents
-        if isinstance(agent, agent_type)
-        and agent != self_agent
-        and tuple(agent.geometry.coords[0]) == tuple(next_pos)
-    ]
-
-
 class test_agent(mg.GeoAgent):
     """Agent that moves from road a to b to determine time to travel"""
     
@@ -49,32 +38,35 @@ class test_agent(mg.GeoAgent):
     def step(self):
         if self.finished or not self.path:
             return
-        if self.current_index < len(self.path) - 1:
-            next_index = min(self.current_index + self.speed, len(self.path) - 1)
-            next_pos = self.path[next_index]
+        moves = 0
+        while moves < self.speed and self.current_index < len(self.path) - 1:
+            u = self.path[self.current_index]
+            v = self.path[self.current_index + 1]
 
-            blocking_cars = get_blocking_cars(self.model.space,next_pos, self, test_agent)
+            # Try default lane 0 first, then others if available
+            moved = False
+            for lane in range(self.model.road_lanes):
+                key = (u, v, lane)
+                if key not in self.model.lane_occupancy:
+                    # Reserve, move, then release immediately (discrete hop)
+                    self.model.lane_occupancy[key] = self
+                    self.current_index += 1
+                    self.geometry = Point(v)
+                    self.model.lane_occupancy.pop(key, None)
+                    moved = True
+                    moves += 1
+                    break
 
-            can_swap = False
-            for other in blocking_cars:
-                if other.current_index < len(other.path) - 1:
-                    other_next_index = min(other.current_index + other.speed, len(other.path) - 1)
-                    other_next_pos = other.path[other_next_index]
-                    if tuple(other_next_pos) == tuple(self.geometry.coords[0]):
-                        can_swap = True
-                        break
+            if not moved:
+                # Blocked on all lanes for this directed edge; stop this tick
+                break
 
-            if not blocking_cars or can_swap:
-                self.geometry = Point(next_pos)
-                self.current_index = next_index
-                self.travel_time += 1
-                if self.current_index == len(self.path) - 1:
-                    self.finished = True
-                    print(f"Test agent reached destination in {self.travel_time} steps.")
-            else:
-                self.travel_time += 1  # Still count time even if blocked
-        else:
+        # track travel time
+        self.travel_time += 1
+
+        if self.current_index == len(self.path) - 1:
             self.finished = True
+            print(f"Test agent reached destination in {self.travel_time} steps.")
                 
 
 class Car_agent(mg.GeoAgent):
@@ -112,35 +104,40 @@ class Car_agent(mg.GeoAgent):
         return min(nodes, key=lambda n: point.distance(Point(n)))
 
     def step(self):
-        """Advance car agent one step"""
+        """Advance car agent one step using directed-lane occupancy"""
 
-        if self.current_index < len(self.path) -1:
-            next_index = min(self.current_index + self.speed, len(self.path) - 1)
-            next_pos = self.path[next_index]
-
-            # check cars at the next position
-            blocking_cars = get_blocking_cars(self.model.space, next_pos, self, Car_agent)
-            
-            can_swap = False
-            for other in blocking_cars:
-                if other.current_index < len(other.path) - 1:
-                    other_next_index = min(other.current_index + other.speed, len(other.path) - 1)
-                    other_next_pos = other.path[other_next_index]
-                    if tuple(other_next_pos) == tuple(self.geometry.coords[0]):
-                        can_swap = True
-                        break
-            if not blocking_cars or can_swap:
-                self.geometry = Point(next_pos)
-                self.current_index = next_index
-            else:
-                print("blocked at", next_pos) # testing
-
-
-        else:
-            # Plan a new path to a random node
+        # If no path or at end, (re)plan
+        if self.current_index >= len(self.path) - 1:
             start_node = self.nearest_node(self.geometry)
             end_node = random.choice(list(self.model.road_graph.nodes))
             self.plan_path(start_node, end_node)
+            if not self.path:
+                return
+
+        # Move in increments of one node up to 'speed'
+        steps_done = 0
+        while steps_done < self.speed and self.current_index < len(self.path) - 1:
+            u = self.path[self.current_index]
+            v = self.path[self.current_index + 1]
+
+            moved = False
+            # Preferred lane first (0), then others
+            for lane in range(self.model.road_lanes):
+                key = (u, v, lane)
+                if key not in self.model.lane_occupancy:
+                    self.model.lane_occupancy[key] = self
+                    # perform move
+                    self.current_index += 1
+                    self.geometry = Point(v)
+                    # release occupancy immediately after move
+                    self.model.lane_occupancy.pop(key, None)
+                    steps_done += 1
+                    moved = True
+                    break
+
+            if not moved:
+                # Blocked on this directed edge across all lanes this tick
+                break
 
 
 def interpolate_linestring(line: LineString, spacing=5):
@@ -152,7 +149,7 @@ def interpolate_linestring(line: LineString, spacing=5):
 class Main_model(mesa.Model):
     """Main model class for the neighborhood project"""
 
-    def __init__(self, num_of_cars=100, speed_limit=40):
+    def __init__(self, num_of_cars=100, speed_limit=40, road_lanes=1):
         super().__init__()
         
         self.start_time = datetime.now()
@@ -160,6 +157,8 @@ class Main_model(mesa.Model):
         self.space = mg.GeoSpace(warn_crs_conversion=False)
         self.running = True
         self.speed_limit = speed_limit
+        self.road_lanes = road_lanes
+        self.lane_occupancy: dict[tuple, object] = {}
 
         # read in the geojson files
         road_path = "Roads.geojson"
@@ -176,8 +175,9 @@ class Main_model(mesa.Model):
         self.space.add_agents(buildings_agents)
         
         # Create a road graph from the roads
-        self.road_graph = nx.Graph()
-        spacing = 5  # Increased spacing to 50 meters between points
+        # Build a directed multigraph where parallel edges represent lanes
+        self.road_graph = nx.MultiDiGraph()
+        spacing = 5  # meters between points
         for i, row in roads_comp.iterrows():
             line = row.geometry
             points = interpolate_linestring(line, spacing)
@@ -185,9 +185,27 @@ class Main_model(mesa.Model):
             for start, end in zip(points[:-1], points[1:]):
                 start_xy = (start.x, start.y)
                 end_xy = (end.x, end.y)
-                self.road_graph.add_edge(
-                    start_xy, end_xy, weight=Point(start_xy).distance(Point(end_xy))
-                )
+                dist = Point(start_xy).distance(Point(end_xy))
+                # add lanes for both directions as parallel edges
+                for lane in range(self.road_lanes):
+                    # forward lane
+                    self.road_graph.add_edge(
+                        start_xy,
+                        end_xy,
+                        key=lane,
+                        weight=dist,
+                        lane=lane,
+                        direction=1,
+                    )
+                    # backward lane
+                    self.road_graph.add_edge(
+                        end_xy,
+                        start_xy,
+                        key=lane,
+                        weight=dist,
+                        lane=lane,
+                        direction=-1,
+                    )
 
         # Set up cars
         car_ac = mg.AgentCreator(Car_agent, model=self,crs="EPSG:3857") # set crs because it breaks otherwise
@@ -203,6 +221,10 @@ class Main_model(mesa.Model):
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
+        # Track car agents
+        self.cars = [
+            agent for agent in self.space.agents if callable(getattr(agent, "step", None))
+        ]
         
         northmost = max(nodes, key=lambda n: n[1])
         #southmost = min(nodes, key=lambda n: n[1])
@@ -223,5 +245,5 @@ class Main_model(mesa.Model):
         """Run one step of the model"""
         self.sim_time += timedelta(seconds=1)
         
-        for agent in self.space.agents:
+        for agent in self.cars:
             agent.step()

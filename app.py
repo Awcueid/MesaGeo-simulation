@@ -22,37 +22,54 @@ def Time(model):
 def Main_draw(agent): 
     """Portrayal Method for canvas"""
     
-    if agent.geometry.geom_type == "Polygon":
-        area = agent.geometry.area  
-        if area > 43677.19: # change this to use id later
-            portrayal = { # set new high rise building to red
-                "type": "polygon",  
-                "color": "red",  
+
+    geom_type = agent.geometry.geom_type
+
+    # Cache portrayals for static geometries 
+    if geom_type in ("Polygon", "LineString"):
+        cached = getattr(agent, "_static_portrayal", None)
+        if cached is not None:
+            return cached
+
+        if geom_type == "Polygon":
+            # Compute the expensive area check once and cache the result
+            if not hasattr(agent, "_is_large_building"):
+                try:
+                    agent.target = agent.geometry.area > 43677.19  # to do : switch to id-based rule
+                except Exception:
+                    agent.target = False
+
+            portrayal = {
+                "type": "polygon",
+                "color": "red" if agent.target else "green",
             }
-        else:
-            portrayal = {  # set rest of houses to green
-                "type": "polygon",  
-                "color": "green",  
+        else:  # LineString (roads)
+            portrayal = {
+                "type": "linestring",
+                "color": "blue",
             }
-    elif agent.geometry.geom_type == "LineString":
-        portrayal = {  # set roads to blue
-            "type": "linestring",  
-            "color": "blue",  
-        }
-    elif isinstance(agent, test_agent):
-        print("Drawing special agent")
+
+        # Cache and return for future draws
+        agent._static_portrayal = portrayal
+        return portrayal
+
+    # Dynamic agents (points)
+    if isinstance(agent, test_agent):
         portrayal = {
-            "type": "point",  
-            "color": "red",  # set special agent to red
+            "type": "point",
+            "color": "red",  # special agent
             "radius": 5,
         }
-    elif agent.geometry.geom_type == "Point":
-        print("Drawing point agent",agent.geometry)
-        portrayal = {  # set cars to purple
-            "type": "point",  
-            "color": "purple", 
-            "radius": 5,  # check why size doesent work
+    elif geom_type == "Point":
+        portrayal = {
+            "type": "point",
+            "color": "purple",  # regular cars
+            "radius": 5,
         }
+    else:
+        # Fallback
+        portrayal = {"type": "point", "color": "gray", "radius": 3}
+
     return portrayal
 
 # run the model
