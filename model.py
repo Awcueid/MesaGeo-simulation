@@ -146,10 +146,48 @@ def interpolate_linestring(line: LineString, spacing=5):
         for distance in range(0, int(line.length), spacing)] + [line.interpolate(line.length)]
 
 
+def connect_components(graph):
+    """Connect disconnected components in the road graph."""
+
+    # Find weakly connected components
+    components = list(nx.weakly_connected_components(graph))
+    if len(components) <= 1:
+        print("The road graph is already connected.")
+        return
+
+    print(f"Connecting {len(components)} weakly connected components...")
+
+    # Sort components by size (largest first)
+    components = sorted(components, key=len, reverse=True)
+    largest_component = components[0]
+
+    # Connect smaller components to the largest component
+    for component in components[1:]:
+        min_distance = float("inf")
+        closest_pair = None
+
+        # Find the closest pair of nodes between the largest component and the current component
+        for node1 in largest_component:
+            for node2 in component:
+                distance = Point(node1).distance(Point(node2))
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_pair = (node1, node2)
+
+        # Add an edge to connect the components
+        if closest_pair:
+            node1, node2 = closest_pair
+            graph.add_edge(node1, node2, weight=min_distance, lane=0, direction=1)
+            graph.add_edge(node2, node1, weight=min_distance, lane=0, direction=-1)
+            print(f"Connected {node1} to {node2} with distance {min_distance:.2f}.")
+
+    print("All components connected.")
+
+
 class Main_model(mesa.Model):
     """Main model class for the neighborhood project"""
 
-    def __init__(self, num_of_cars=100, speed_limit=40, road_lanes=1):
+    def __init__(self, num_of_cars=100, speed_limit=40, road_lanes=1, fix_graph=True):
         super().__init__()
         
         self.start_time = datetime.now()
@@ -181,7 +219,6 @@ class Main_model(mesa.Model):
         for i, row in roads_comp.iterrows():
             line = row.geometry
             points = interpolate_linestring(line, spacing)
-            #coords = list(row.geometry.coords)
             for start, end in zip(points[:-1], points[1:]):
                 start_xy = (start.x, start.y)
                 end_xy = (end.x, end.y)
@@ -206,7 +243,10 @@ class Main_model(mesa.Model):
                         lane=lane,
                         direction=-1,
                     )
+        # optimize / fix the graph if needed
+        connect_components(self.road_graph)
 
+        
         # Set up cars
         car_ac = mg.AgentCreator(Car_agent, model=self,crs="EPSG:3857") # set crs because it breaks otherwise
         car_agents = []
