@@ -1,2 +1,5 @@
 # Ignore Python cache files
 __pycache__/
+
+# ignore old maps
+old maps/
