@@ -9,19 +9,13 @@ model_params = {
 }
 
 def Time(model):
-    """Display formatted simulation time"""
-    try:
-        hours = int(model.sim_time.total_seconds() // 3600)
-        minutes = int((model.sim_time.total_seconds() % 3600) // 60)
-        seconds = int(model.sim_time.total_seconds() % 60)
-        time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        return solara.Text(f"Simulation time: {time_str}")
-    except AttributeError:
-        return solara.Text("Time not available")
+    total_seconds = int(model.sim_time.total_seconds())
+    minutes, seconds = divmod(total_seconds, 60)
+    time_str = f"{minutes:02d}:{seconds:02d}"
+    return solara.Text(f"Simulation time: {time_str}")
 
-def Main_draw(agent): 
-    """Portrayal Method for canvas"""
-    
+
+def Main_draw(agent):
 
     geom_type = agent.geometry.geom_type
 
@@ -80,12 +74,13 @@ page = solara.Column(
     [
         SolaraViz(
             model,
-            [
-                make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"),
+            components=[
+                (make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"), 0),
             ],
             model_params=model_params,
             name="Neighborhood Project",
-        ),Time(model)
+        ),
+        # display time after
     ]
 )
 page  # noqa
