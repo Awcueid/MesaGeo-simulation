@@ -235,7 +235,10 @@ class Main_model(mesa.Model):
             geometry=Point(northmost),
         )
         test_car.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
+
+        # add the test car to the space and cars list
         self.space.add_agents([test_car])
+        self.cars.append(test_car)
 
         # debug
         #print("roads_comp.crs:", roads_comp.crs)
