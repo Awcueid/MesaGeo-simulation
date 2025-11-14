@@ -161,8 +161,8 @@ class Main_model(mesa.Model):
         self.lane_occupancy: dict[tuple, object] = {}
 
         # read in the geojson files
-        road_path = "Roads.geojson"
-        buildings_path = "Buildings.geojson"
+        road_path = "Maps/Roads.geojson"
+        buildings_path = "Maps/Buildings.geojson"
 
         # Set up roads
         roads_comp = gpd.read_file(road_path).to_crs(epsg=3857)
