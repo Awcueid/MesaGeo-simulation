@@ -6,6 +6,8 @@ import mesa_geo as mg
 from shapely.geometry import LineString, Point
 from datetime import datetime, timedelta
 from car_agent import Car_agent, test_car
+from bicycle_agent import Bicycle_agent
+from pedestrian_agent import Pedestrian_agent
 
 def interpolate_linestring(line: LineString, spacing=5):
     """Helper function for points"""
@@ -54,7 +56,7 @@ def connect_components(graph):
 class Main_model(mesa.Model):
     """Main model class for the neighborhood project"""
 
-    def __init__(self, num_of_cars=100, speed_limit=40, road_lanes=1, fix_graph=True):
+    def __init__(self, num_of_cars=100, speed_limit=40, road_lanes=1, fix_graph=True, num_of_bicycles=50, num_of_pedestrians=100):
         super().__init__()
         
         self.start_time = datetime.now()
@@ -63,7 +65,9 @@ class Main_model(mesa.Model):
         self.running = True
         self.speed_limit = speed_limit
         self.road_lanes = road_lanes
-        self.lane_occupancy: dict[tuple, object] = {}
+        # Separate occupancies so cars and bicycles use different lanes
+        self.car_lane_occupancy: dict[tuple, object] = {}
+        self.bicycle_lane_occupancy: dict[tuple, object] = {}
 
         # read in the geojson files
         road_path = "Maps/Roads.geojson"
@@ -124,11 +128,38 @@ class Main_model(mesa.Model):
             car_agent = car_ac.create_agent(
                 geometry=Point(start_node),
             )
-            car_agent.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
+            # Cars: ~40 km/h -> ~2 nodes/step (5 m spacing)
+            car_agent.speed = 2
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
-        # Track car agents
+        # Set up bicycles
+        bicycle_ac = mg.AgentCreator(Bicycle_agent, model=self, crs="EPSG:3857")
+        bicycle_agents = []
+        for i in range(num_of_bicycles):
+            start_node = random.choice(nodes)
+            bicycle_agent = bicycle_ac.create_agent(
+                geometry=Point(start_node),
+            )
+            # Bicycles: ~15 km/h -> about half car speed
+            bicycle_agent.speed = 1
+            bicycle_agents.append(bicycle_agent)
+        self.space.add_agents(bicycle_agents)
+
+        # Set up pedestrians
+        pedestrian_ac = mg.AgentCreator(Pedestrian_agent, model=self, crs="EPSG:3857")
+        pedestrian_agents = []
+        for i in range(num_of_pedestrians):
+            start_node = random.choice(nodes)
+            pedestrian_agent = pedestrian_ac.create_agent(
+                geometry=Point(start_node),
+            )
+            # Pedestrians: move one node every 2 model steps
+            pedestrian_agent.speed = 1
+            pedestrian_agents.append(pedestrian_agent)
+        self.space.add_agents(pedestrian_agents)
+
+        # Track car and bicycle agents
         self.cars = [
             agent for agent in self.space.agents if callable(getattr(agent, "step", None))
         ]

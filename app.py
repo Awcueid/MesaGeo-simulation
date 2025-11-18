@@ -3,6 +3,8 @@ from mesa.visualization import Slider, SolaraViz # add make_plot_component
 from mesa_geo.visualization import make_geospace_component
 from model import Main_model
 from car_agent import test_car
+from bicycle_agent import Bicycle_agent
+from pedestrian_agent import Pedestrian_agent
 
 model_params = {
     # sliders for model parameters
@@ -54,6 +56,18 @@ def Main_draw(agent):
             "type": "point",
             "color": "red",  # special agent
             "radius": 5,
+        }
+    elif isinstance(agent, Bicycle_agent):
+        portrayal = {
+            "type": "point",
+            "color": "orange",  # bicycles
+            "radius": 4,
+        }
+    elif isinstance(agent, Pedestrian_agent):
+        portrayal = {
+            "type": "point",
+            "color": "yellow",  # pedestrians (distinct color)
+            "radius": 3,
         }
     elif geom_type == "Point":
         portrayal = {

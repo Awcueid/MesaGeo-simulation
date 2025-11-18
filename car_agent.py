@@ -58,13 +58,13 @@ class Car_agent(mg.GeoAgent):
             # Preferred lane first (0), then others
             for lane in range(self.model.road_lanes):
                 key = (u, v, lane)
-                if key not in self.model.lane_occupancy:
-                    self.model.lane_occupancy[key] = self
+                if key not in self.model.car_lane_occupancy:
+                    self.model.car_lane_occupancy[key] = self
                     # perform move
                     self.current_index += 1
                     self.geometry = Point(v)
                     # release occupancy immediately after move
-                    self.model.lane_occupancy.pop(key, None)
+                    self.model.car_lane_occupancy.pop(key, None)
                     steps_done += 1
                     moved = True
                     break
@@ -114,12 +114,12 @@ class test_car(mg.GeoAgent):
             moved = False
             for lane in range(self.model.road_lanes):
                 key = (u, v, lane)
-                if key not in self.model.lane_occupancy:
+                if key not in self.model.car_lane_occupancy:
                     # Reserve, move, then release immediately (discrete hop)
-                    self.model.lane_occupancy[key] = self
+                    self.model.car_lane_occupancy[key] = self
                     self.current_index += 1
                     self.geometry = Point(v)
-                    self.model.lane_occupancy.pop(key, None)
+                    self.model.car_lane_occupancy.pop(key, None)
                     moved = True
                     moves += 1
                     break
