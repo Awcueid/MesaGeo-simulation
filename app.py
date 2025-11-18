@@ -1,11 +1,12 @@
 import solara
 from mesa.visualization import Slider, SolaraViz # add make_plot_component
 from mesa_geo.visualization import make_geospace_component
-from model import Main_model, test_agent
+from model import Main_model
+from car_agent import test_car
 
 model_params = {
     # sliders for model parameters
-    "num_of_cars": Slider("Number of Cars", 30, 1, 1000, 1),
+    "num_of_cars": Slider("Number of Cars", 30, 0, 1000, 1),
 }
 
 def Time(model):
@@ -48,7 +49,7 @@ def Main_draw(agent):
         return portrayal
 
     # Dynamic agents (points)
-    if isinstance(agent, test_agent):
+    if isinstance(agent, test_car):
         portrayal = {
             "type": "point",
             "color": "red",  # special agent
