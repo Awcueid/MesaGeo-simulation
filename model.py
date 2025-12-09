@@ -6,8 +6,8 @@ import mesa_geo as mg
 from shapely.geometry import LineString, Point
 from datetime import datetime, timedelta
 from car_agent import Car_agent, test_car
-from bicycle_agent import Bicycle_agent
-from pedestrian_agent import Pedestrian_agent
+from bicycle_agent import Bicycle_agent, test_bicycle
+from pedestrian_agent import Pedestrian_agent, test_pedestrian
 
 def interpolate_linestring(line: LineString, spacing=5):
     """Helper function for points"""
@@ -174,9 +174,23 @@ class Main_model(mesa.Model):
         )
         test_car_agent.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
 
-        # add the test car to the space and cars list
-        self.space.add_agents([test_car_agent])
-        self.cars.append(test_car_agent)
+        # Test bicycle (same endpoints as test_car)
+        test_bicycle_ac = mg.AgentCreator(test_bicycle, model=self, crs="EPSG:3857")
+        test_bicycle_agent = test_bicycle_ac.create_agent(
+            geometry=Point(northmost),
+        )
+        test_bicycle_agent.speed = 1
+
+        # Test pedestrian (same endpoints as test_car)
+        test_pedestrian_ac = mg.AgentCreator(test_pedestrian, model=self, crs="EPSG:3857")
+        test_pedestrian_agent = test_pedestrian_ac.create_agent(
+            geometry=Point(northmost),
+        )
+        test_pedestrian_agent.speed = 1
+
+        # add the test agents to the space and cars list
+        self.space.add_agents([test_car_agent, test_bicycle_agent, test_pedestrian_agent])
+        self.cars.extend([test_car_agent, test_bicycle_agent, test_pedestrian_agent])
 
         # debug
         #print("roads_comp.crs:", roads_comp.crs)

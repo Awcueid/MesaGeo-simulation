@@ -54,3 +54,57 @@ class Pedestrian_agent(mg.GeoAgent):
             v = self.path[self.current_index + 1]
             self.current_index += 1
             self.geometry = Point(v)
+
+
+class test_pedestrian(mg.GeoAgent):
+    """Test pedestrian agent moving from fixed start to end to compare travel time"""
+
+    def __init__(self, model, geometry, crs, speed=1):
+        super().__init__(model, geometry, crs)
+
+
+        start_node = -8965387.52181617, 5387148.721794528
+        end_node = -8968572.588849764, 5383403.789376198
+
+        self.speed = speed
+        self.path = []
+        self.current_index = 0
+        self.step_count = 0
+        self.travel_time = 0
+        self.finished = False
+        self.plan_path(start_node, end_node)
+
+    def plan_path(self, start, end):
+        try:
+            self.path = nx.shortest_path(
+                self.model.road_graph,
+                source=start,
+                target=end,
+                weight="weight",
+            )
+            self.current_index = 0
+        except nx.NetworkXNoPath:
+            self.path = []
+            self.finished = True
+
+    def step(self):
+        if self.finished or not self.path:
+            return
+
+        # move every second step
+        self.step_count += 1
+        if self.step_count % 2 != 0:
+            self.travel_time += 1
+            return
+
+        if self.current_index < len(self.path) - 1:
+            u = self.path[self.current_index]
+            v = self.path[self.current_index + 1]
+            self.current_index += 1
+            self.geometry = Point(v)
+
+        self.travel_time += 1
+
+        if self.current_index == len(self.path) - 1:
+            self.finished = True
+            print(f"Test pedestrian reached destination in {self.travel_time} steps.")
