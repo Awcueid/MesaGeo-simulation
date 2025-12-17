@@ -1,6 +1,7 @@
 import geopandas as gpd
 import networkx as nx
 import mesa
+from mesa.datacollection import DataCollector
 import random
 import mesa_geo as mg
 from shapely.geometry import LineString, Point
@@ -68,6 +69,11 @@ class Main_model(mesa.Model):
         # Separate occupancies so cars and bicycles use different lanes
         self.car_lane_occupancy: dict[tuple, object] = {}
         self.bicycle_lane_occupancy: dict[tuple, object] = {}
+
+        # For plotting test agent progress over time
+        self.test_car_agent = None
+        self.test_bicycle_agent = None
+        self.test_pedestrian_agent = None
 
         # read in the geojson files
         road_path = "Maps/Roads.geojson"
@@ -173,6 +179,7 @@ class Main_model(mesa.Model):
             geometry=Point(northmost),
         )
         test_car_agent.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
+        self.test_car_agent = test_car_agent
 
         # Test bicycle (same endpoints as test_car)
         test_bicycle_ac = mg.AgentCreator(test_bicycle, model=self, crs="EPSG:3857")
@@ -180,6 +187,7 @@ class Main_model(mesa.Model):
             geometry=Point(northmost),
         )
         test_bicycle_agent.speed = 1
+        self.test_bicycle_agent = test_bicycle_agent
 
         # Test pedestrian (same endpoints as test_car)
         test_pedestrian_ac = mg.AgentCreator(test_pedestrian, model=self, crs="EPSG:3857")
@@ -187,10 +195,25 @@ class Main_model(mesa.Model):
             geometry=Point(northmost),
         )
         test_pedestrian_agent.speed = 1
+        self.test_pedestrian_agent = test_pedestrian_agent
 
         # add the test agents to the space and cars list
         self.space.add_agents([test_car_agent, test_bicycle_agent, test_pedestrian_agent])
         self.cars.extend([test_car_agent, test_bicycle_agent, test_pedestrian_agent])
+
+        # Data collector for test agents: track path index (progress) each step
+        def _progress(agent):
+            if agent is None or not getattr(agent, "path", None):
+                return 0
+            return getattr(agent, "current_index", 0)
+
+        self.datacollector = DataCollector(
+            model_reporters={
+                "test_car_progress": lambda m: _progress(m.test_car_agent),
+                "test_bicycle_progress": lambda m: _progress(m.test_bicycle_agent),
+                "test_pedestrian_progress": lambda m: _progress(m.test_pedestrian_agent),
+            }
+        )
 
         # debug
         #print("roads_comp.crs:", roads_comp.crs)
@@ -202,3 +225,7 @@ class Main_model(mesa.Model):
         
         for agent in self.cars:
             agent.step()
+
+        # collect data for plotting test agent progress
+        if hasattr(self, "datacollector"):
+            self.datacollector.collect(self)

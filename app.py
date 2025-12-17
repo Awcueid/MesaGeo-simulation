@@ -1,5 +1,5 @@
 import solara
-from mesa.visualization import Slider, SolaraViz # add make_plot_component
+from mesa.visualization import Slider, SolaraViz, make_plot_component
 from mesa_geo.visualization import make_geospace_component
 from model import Main_model
 from car_agent import test_car
@@ -96,6 +96,28 @@ def Main_draw(agent):
 # run the model
 model = Main_model()
 
+
+def test_agent_progress_plot(model):
+    """Return a Solara line chart comparing test agents' progress over time."""
+
+    if not hasattr(model, "datacollector"):
+        return solara.Text("No data collector available")
+
+    df = model.datacollector.get_model_vars_dataframe()
+    if df.empty:
+        return solara.Text("No data yet")
+
+    return solara.LineChart(
+        df,
+        x="step",
+        y=[
+            "test_car_progress",
+            "test_bicycle_progress",
+            "test_pedestrian_progress",
+        ],
+        colors=["red", "orange", "gold"],
+    )
+
 # create the solara page
 page = solara.Column(
     [
@@ -103,6 +125,7 @@ page = solara.Column(
             model,
             components=[
                 (make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"), 0),
+                (make_plot_component(test_agent_progress_plot), 1),
             ],
             model_params=model_params,
             name="Neighborhood Project",
