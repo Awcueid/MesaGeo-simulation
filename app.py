@@ -18,6 +18,17 @@ def Time(model):
     return solara.Text(f"Simulation time: {time_str}")
 
 
+def VehicleLegend():
+    return solara.Markdown(
+        """### Vehicle legend
+- **Purple**: Cars
+- **Orange**: Bicycles
+- **Yellow**: Pedestrians
+- **Red**: Test agents (car/bicycle/pedestrian)
+"""
+    )
+
+
 def Main_draw(agent):
 
     geom_type = agent.geometry.geom_type
@@ -115,12 +126,13 @@ def test_agent_progress_plot(model):
             "test_bicycle_progress",
             "test_pedestrian_progress",
         ],
-        colors=["red", "orange", "gold"],
+        colors=["red", "orange", "yellow"],
     )
 
 # create the solara page
 page = solara.Column(
     [
+        VehicleLegend(),
         SolaraViz(
             model,
             components=[
