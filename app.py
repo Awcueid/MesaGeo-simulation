@@ -132,7 +132,6 @@ def test_agent_progress_plot(model):
 # create the solara page
 page = solara.Column(
     [
-        VehicleLegend(),
         SolaraViz(
             model,
             components=[
@@ -141,8 +140,8 @@ page = solara.Column(
             ],
             model_params=model_params,
             name="Neighborhood Project",
-        ),
+        ),VehicleLegend()
         # display time after
     ]
 )
-page  # noqa
+# page  # noqa
