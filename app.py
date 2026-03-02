@@ -1,5 +1,5 @@
 import solara
-from mesa.visualization import Slider, SolaraViz, make_plot_component
+from mesa.visualization import Slider, SolaraViz
 from mesa_geo.visualization import make_geospace_component
 from model import Main_model
 from car_agent import test_car
@@ -132,11 +132,11 @@ def test_agent_progress_plot(model):
 # create the solara page
 page = solara.Column(
     [
+        solara.Style(".v-tabs { display: none !important; }"),
         SolaraViz(
             model,
             components=[
-                (make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"), 0),
-                (make_plot_component(test_agent_progress_plot), 1),
+                make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"),
             ],
             model_params=model_params,
             name="Neighborhood Project",
