@@ -86,7 +86,11 @@ class Main_model(mesa.Model):
 
         # Set up buildings
         buildings_comp = gpd.read_file(buildings_path).to_crs(epsg=3857)
-        buildings_agents = [mg.GeoAgent(self, geometry=geom, crs=buildings_comp.crs) for geom in buildings_comp.geometry]
+        buildings_agents = []
+        for _, row in buildings_comp.iterrows():
+            agent = mg.GeoAgent(self, geometry=row.geometry, crs=buildings_comp.crs)
+            agent.OBJECTID = row["OBJECTID"]
+            buildings_agents.append(agent)
         self.space.add_agents(buildings_agents)
         
         # Create a road graph from the roads

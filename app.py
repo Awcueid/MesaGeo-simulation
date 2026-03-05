@@ -22,8 +22,8 @@ def VehicleLegend():
     return solara.Markdown(
         """### Vehicle legend
 - **Purple**: Cars
-- **Orange**: Bicycles
-- **Yellow**: Pedestrians
+- **Green**: Bicycles
+- **Blue**: Pedestrians
 - **Red**: Test agents (car/bicycle/pedestrian)
 """
     )
@@ -33,31 +33,28 @@ def Main_draw(agent):
 
     geom_type = agent.geometry.geom_type
 
-    # Cache portrayals for static geometries 
-    if geom_type in ("Polygon", "LineString"):
-        cached = getattr(agent, "_static_portrayal", None)
-        if cached is not None:
-            return cached
+    # Static geometries — buildings and roads
+    if geom_type in ("Polygon"):
+        if hasattr(agent, "_static_portrayal"):
+            return agent._static_portrayal
 
-        if geom_type == "Polygon":
-            # Compute the expensive area check once and cache the result
-            if not hasattr(agent, "_is_large_building"):
-                try:
-                    agent.target = agent.geometry.area > 43677.19  # to do : switch to id-based rule
-                except Exception:
-                    agent.target = False
+        # Polygon (buildings) — only draw target buildings in red
+        TARGET_BUILDING_IDS = {'HOSPITAL_1', 'HOSPITAL_2', 'NEW_APARTMENT'}
+        if not hasattr(agent, "_is_target_building"):
+            agent._is_target_building = getattr(agent, "OBJECTID", None) in TARGET_BUILDING_IDS
 
-            portrayal = {
-                "type": "polygon",
-                "color": "red" if agent.target else "green",
+        if not agent._is_target_building:
+            invisible = {
+                "opacity": 0,
+                "fillOpacity": 0,
+                "weight": 0,
+                "stroke": False,
+                "fill": False,
             }
-        else:  # LineString (roads)
-            portrayal = {
-                "type": "linestring",
-                "color": "blue",
-            }
+            agent._static_portrayal = invisible
+            return invisible
 
-        # Cache and return for future draws
+        portrayal = {"color": "red", "fillColor": "red", "fillOpacity": 0.5, "weight": 2}
         agent._static_portrayal = portrayal
         return portrayal
 
@@ -83,13 +80,13 @@ def Main_draw(agent):
     elif isinstance(agent, Bicycle_agent):
         portrayal = {
             "type": "point",
-            "color": "orange",  # bicycles
+            "color": "green",  # bicycles
             "radius": 4,
         }
     elif isinstance(agent, Pedestrian_agent):
         portrayal = {
             "type": "point",
-            "color": "yellow",  # pedestrians (distinct color)
+            "color": "blue",  # pedestrians
             "radius": 3,
         }
     elif geom_type == "Point":
@@ -103,6 +100,13 @@ def Main_draw(agent):
         portrayal = {"type": "point", "color": "gray", "radius": 3}
 
     return portrayal
+
+# TEMP FIX: mesa_geo calls properties.pop() on the portrayal dict and crashes
+
+_raw_main_draw = Main_draw
+def Main_draw(agent):  # noqa: F811
+    result = _raw_main_draw(agent)
+    return result if isinstance(result, dict) else {}
 
 # run the model
 model = Main_model()
