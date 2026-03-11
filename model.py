@@ -57,7 +57,7 @@ def connect_components(graph):
 class Main_model(mesa.Model):
     """Main model class for the neighborhood project"""
 
-    def __init__(self, num_of_cars=100, speed_limit=40, road_lanes=1, fix_graph=True, num_of_bicycles=50, num_of_pedestrians=100):
+    def __init__(self, num_of_cars=100, speed_limit=40, fix_graph=True, num_of_bicycles=50, num_of_pedestrians=100):
         super().__init__()
         
         self.start_time = datetime.now()
@@ -65,7 +65,7 @@ class Main_model(mesa.Model):
         self.space = mg.GeoSpace(warn_crs_conversion=False)
         self.running = True
         self.speed_limit = speed_limit
-        self.road_lanes = road_lanes
+        self.road_lanes = 1 
         # Separate occupancies so cars and bicycles use different lanes
         self.car_lane_occupancy: dict[tuple, object] = {}
         self.bicycle_lane_occupancy: dict[tuple, object] = {}
@@ -93,37 +93,46 @@ class Main_model(mesa.Model):
             buildings_agents.append(agent)
         self.space.add_agents(buildings_agents)
         
-        # Create a road graph from the roads
-        # Build a directed multigraph where parallel edges represent lanes
+        # Create a road graph from the roads.
         self.road_graph = nx.MultiDiGraph()
         spacing = 5  # meters between points
+        max_lanes_seen = 1
         for i, row in roads_comp.iterrows():
             line = row.geometry
             points = interpolate_linestring(line, spacing)
+
+            # Per-segment lane count (fall back to 1 if missing/zero)
+            raw_lanes = row.get("NUMBER_LANES", None)
+            seg_lanes = int(raw_lanes) if (raw_lanes and not gpd.pd.isna(raw_lanes) and int(raw_lanes) > 0) else 1
+            max_lanes_seen = max(max_lanes_seen, seg_lanes)
+
+            # FLOW_DIRECTION: 'TwoWay' -> bidirectional, 'FromTo' -> one-way
+            flow = str(row.get("FLOW_DIRECTION", "TwoWay")).strip()
+            two_way = (flow != "FromTo")
+
+            # SPEED_ZONE in km/h (fall back to 50 if missing)
+            raw_speed = row.get("SPEED_ZONE", 40.0)
+            speed_kmh = float(raw_speed) if (raw_speed and not gpd.pd.isna(raw_speed) and float(raw_speed) > 0) else 40.0
+
             for start, end in zip(points[:-1], points[1:]):
                 start_xy = (start.x, start.y)
                 end_xy = (end.x, end.y)
                 dist = Point(start_xy).distance(Point(end_xy))
-                # add lanes for both directions as parallel edges
-                for lane in range(self.road_lanes):
-                    # forward lane
+                for lane in range(seg_lanes):
                     self.road_graph.add_edge(
-                        start_xy,
-                        end_xy,
-                        key=lane,
-                        weight=dist,
-                        lane=lane,
-                        direction=1,
+                        start_xy, end_xy,
+                        key=lane, weight=dist, lane=lane,
+                        num_lanes=seg_lanes, speed_kmh=speed_kmh, direction=1,
                     )
-                    # backward lane
-                    self.road_graph.add_edge(
-                        end_xy,
-                        start_xy,
-                        key=lane,
-                        weight=dist,
-                        lane=lane,
-                        direction=-1,
-                    )
+                    if two_way:
+                        self.road_graph.add_edge(
+                            end_xy, start_xy,
+                            key=lane, weight=dist, lane=lane,
+                            num_lanes=seg_lanes, speed_kmh=speed_kmh, direction=-1,
+                        )
+
+        # road_lanes = max lanes across all segments (occupancy key ceiling)
+        self.road_lanes = max_lanes_seen
         # optimize / fix the graph if needed
         connect_components(self.road_graph)
 
@@ -138,8 +147,9 @@ class Main_model(mesa.Model):
             car_agent = car_ac.create_agent(
                 geometry=Point(start_node),
             )
-            # Cars: ~40 km/h -> ~2 nodes/step (5 m spacing)
-            car_agent.speed = 2
+            
+            car_agent.speed = 3
+            car_agent.speed_factor = random.uniform(0.85, 1.15)  # driver personality
             car_agents.append(car_agent)
         self.space.add_agents(car_agents)
 
@@ -182,7 +192,8 @@ class Main_model(mesa.Model):
         test_car_agent = test_ac.create_agent(
             geometry=Point(northmost),
         )
-        test_car_agent.speed = 2  # Speed for 40km/h = 11.11m/s ≈ 2.22 nodes (rounded to 2 nodes per step since nodes are 5m apart)
+        test_car_agent.speed = 3  
+        test_car_agent.speed_factor = 1.0  # test car drives exactly at the limit
         self.test_car_agent = test_car_agent
 
         # Test bicycle (same endpoints as test_car)

@@ -13,6 +13,7 @@ class Car_agent(mg.GeoAgent):
         self.path = []
         self.current_index = 0
         self.speed = speed
+        self.speed_factor = 1.0  
 
         # intial path planning
         start_node = self.nearest_node(self.geometry)
@@ -48,29 +49,40 @@ class Car_agent(mg.GeoAgent):
             if not self.path:
                 return
 
-        # Move in increments of one node up to 'speed'
+        # 1 step = 1 second, node spacing = 5 m  =>  nodes/step = speed_kmh * factor / 3.6 / 5
+        u0 = self.path[self.current_index]
+        v0 = self.path[self.current_index + 1]
+        edge_data = self.model.road_graph.get_edge_data(u0, v0)
+        first_edge = next(iter(edge_data.values()), {}) if edge_data else {}
+        speed_kmh = first_edge.get("speed_kmh", 40.0)
+        moves_allowed = max(1, round(speed_kmh * self.speed_factor / 3.6 / 5))
+
         steps_done = 0
-        while steps_done < self.speed and self.current_index < len(self.path) - 1:
+        while steps_done < moves_allowed and self.current_index < len(self.path) - 1:
             u = self.path[self.current_index]
             v = self.path[self.current_index + 1]
 
+            edge_data = self.model.road_graph.get_edge_data(u, v)
+            seg_lanes = next(iter(edge_data.values()), {}).get("num_lanes", 1) if edge_data else 1
+
+            # Fast drivers (speed_factor >= 1.0) prefer outer lanes — overtaking.
+            # Slow drivers keep to inner lane 0 — keep right.
+            lane_order = reversed(range(seg_lanes)) if self.speed_factor >= 1.0 else range(seg_lanes)
+
             moved = False
-            # Preferred lane first (0), then others
-            for lane in range(self.model.road_lanes):
+            for lane in lane_order:
                 key = (u, v, lane)
                 if key not in self.model.car_lane_occupancy:
                     self.model.car_lane_occupancy[key] = self
-                    # perform move
                     self.current_index += 1
                     self.geometry = Point(v)
-                    # release occupancy immediately after move
                     self.model.car_lane_occupancy.pop(key, None)
                     steps_done += 1
                     moved = True
                     break
 
             if not moved:
-                # Blocked on this directed edge across all lanes this tick
+                # Blocked on all lanes for this edge this tick
                 break
 
 class test_car(mg.GeoAgent):
@@ -105,17 +117,30 @@ class test_car(mg.GeoAgent):
     def step(self):
         if self.finished or not self.path:
             return
+
+        # Read speed limit from the next edge (nodes/step = speed_kmh * factor / 3.6 / 5)
+        u0 = self.path[self.current_index]
+        v0 = self.path[self.current_index + 1]
+        edge_data = self.model.road_graph.get_edge_data(u0, v0)
+        first_edge = next(iter(edge_data.values()), {}) if edge_data else {}
+        speed_kmh = first_edge.get("speed_kmh", 40.0)
+        moves_allowed = max(1, round(speed_kmh * self.speed_factor / 3.6 / 5))
+
         moves = 0
-        while moves < self.speed and self.current_index < len(self.path) - 1:
+        while moves < moves_allowed and self.current_index < len(self.path) - 1:
             u = self.path[self.current_index]
             v = self.path[self.current_index + 1]
 
-            # Try default lane 0 first, then others if available
+            edge_data = self.model.road_graph.get_edge_data(u, v)
+            seg_lanes = next(iter(edge_data.values()), {}).get("num_lanes", 1) if edge_data else 1
+
+            # test_car drives exactly at the limit (speed_factor = 1.0) — use outer lanes
+            lane_order = reversed(range(seg_lanes))
+
             moved = False
-            for lane in range(self.model.road_lanes):
+            for lane in lane_order:
                 key = (u, v, lane)
                 if key not in self.model.car_lane_occupancy:
-                    # Reserve, move, then release immediately (discrete hop)
                     self.model.car_lane_occupancy[key] = self
                     self.current_index += 1
                     self.geometry = Point(v)
@@ -125,10 +150,8 @@ class test_car(mg.GeoAgent):
                     break
 
             if not moved:
-                # Blocked on all lanes for this directed edge; stop this tick
                 break
 
-        # track travel time
         self.travel_time += 1
 
         if self.current_index == len(self.path) - 1:
