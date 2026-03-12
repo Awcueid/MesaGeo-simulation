@@ -133,10 +133,16 @@ def test_agent_progress_plot(model):
         colors=["red", "orange", "yellow"],
     )
 
-# create the solara page
-page = solara.Column(
-    [
-        solara.Style(".v-tabs { display: none !important; }"),
+sim_choice = solara.reactive(None)
+
+@solara.component
+def Page():
+    if sim_choice.value is None:
+        solara.Text("Choose a simulation to run:")
+        solara.Button("Simulation A", on_click=lambda: sim_choice.set("A"))
+        solara.Button("Simulation B", on_click=lambda: sim_choice.set("B"))
+    elif sim_choice.value == "A":
+        solara.Style(".v-tabs { display: none !important; }")
         SolaraViz(
             model,
             components=[
@@ -144,8 +150,7 @@ page = solara.Column(
             ],
             model_params=model_params,
             name="Neighborhood Project",
-        ),VehicleLegend()
-        # display time after
-    ]
-)
-# page  # noqa
+        )
+        VehicleLegend()
+    elif sim_choice.value == "B":
+        solara.Text("Simulation B — coming soon")
