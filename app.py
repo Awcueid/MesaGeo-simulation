@@ -1,7 +1,7 @@
 import solara
 from mesa.visualization import Slider, SolaraViz
 from mesa_geo.visualization import make_geospace_component
-from model import Main_model
+from traffic_simulation import Main_model
 from car_agent import test_car
 from bicycle_agent import Bicycle_agent, test_bicycle
 from pedestrian_agent import Pedestrian_agent, test_pedestrian

@@ -1,6 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-from model import Main_model
+from traffic_simulation import Main_model
 
 def visualize_network():
     # Create an instance of the model
