@@ -98,18 +98,15 @@ def Main_draw(agent):
     else:
         # Fallback
         portrayal = {"type": "point", "color": "gray", "radius": 3}
-
     return portrayal
 
-# TEMP FIX: mesa_geo calls properties.pop() on the portrayal dict and crashes
 
 _raw_main_draw = Main_draw
 def Main_draw(agent):  # noqa: F811
     result = _raw_main_draw(agent)
     return result if isinstance(result, dict) else {}
 
-# run the model
-model = Main_model()
+
 
 
 def test_agent_progress_plot(model):
@@ -139,18 +136,19 @@ sim_choice = solara.reactive(None)
 def Page():
     if sim_choice.value is None:
         solara.Text("Choose a simulation to run:")
-        solara.Button("Simulation A", on_click=lambda: sim_choice.set("A"))
-        solara.Button("Simulation B", on_click=lambda: sim_choice.set("B"))
+        solara.Button("Traffic Simulation", on_click=lambda: sim_choice.set("A"))
+        solara.Button("Trading Simulation", on_click=lambda: sim_choice.set("B"))
     elif sim_choice.value == "A":
+        print("Running Traffic Simulation")
         solara.Style(".v-tabs { display: none !important; }")
         SolaraViz(
-            model,
+            Main_model(),
             components=[
                 make_geospace_component(Main_draw, zoom=14, height="100vh", width="100vw"),
             ],
             model_params=model_params,
-            name="Neighborhood Project",
+            name="Traffic Simulation",
         )
         VehicleLegend()
     elif sim_choice.value == "B":
-        solara.Text("Simulation B — coming soon")
+        solara.Text("Trading Simulation")
