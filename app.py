@@ -2,6 +2,7 @@ import solara
 from mesa.visualization import Slider, SolaraViz
 from mesa_geo.visualization import make_geospace_component
 from traffic_simulation import Main_model
+from trading_simulation import Trading_model
 from car_agent import test_car
 from bicycle_agent import Bicycle_agent, test_bicycle
 from pedestrian_agent import Pedestrian_agent, test_pedestrian
@@ -130,6 +131,61 @@ def test_agent_progress_plot(model):
         colors=["red", "orange", "yellow"],
     )
 
+trading_model_params = {
+    "num_of_bicycles": Slider("Number of Bicycles", 50, 0, 500, 1),
+    "num_of_pedestrians": Slider("Number of Pedestrians", 100, 0, 500, 1),
+}
+
+
+def Trading_draw(agent):
+    """Draw function for the trading simulation (bicycles, pedestrians, buildings)."""
+    geom_type = agent.geometry.geom_type
+
+    # Buildings
+    if geom_type == "Polygon":
+        if hasattr(agent, "_static_portrayal"):
+            return agent._static_portrayal
+        portrayal = {
+            "color": "#8B4513",
+            "fillColor": "#D2B48C",
+            "fillOpacity": 0.6,
+            "weight": 1,
+        }
+        agent._static_portrayal = portrayal
+        return portrayal
+
+    # Roads (LineString / MultiLineString)
+    if geom_type in ("LineString", "MultiLineString"):
+        if hasattr(agent, "_static_portrayal"):
+            return agent._static_portrayal
+        portrayal = {"color": "gray", "weight": 1, "opacity": 0.4}
+        agent._static_portrayal = portrayal
+        return portrayal
+
+    # Dynamic agents (points)
+    if isinstance(agent, test_bicycle):
+        return {"type": "point", "color": "red", "radius": 5}
+    elif isinstance(agent, test_pedestrian):
+        return {"type": "point", "color": "red", "radius": 5}
+    elif isinstance(agent, Bicycle_agent):
+        return {"type": "point", "color": "green", "radius": 4}
+    elif isinstance(agent, Pedestrian_agent):
+        return {"type": "point", "color": "blue", "radius": 3}
+    else:
+        return {"type": "point", "color": "gray", "radius": 3}
+
+
+def TradingLegend():
+    return solara.Markdown(
+        """### Trading Simulation Legend
+- **Green**: Bicycles
+- **Blue**: Pedestrians
+- **Red**: Test agents (bicycle/pedestrian)
+- **Brown**: Buildings
+"""
+    )
+
+
 sim_choice = solara.reactive(None)
 
 @solara.component
@@ -151,4 +207,14 @@ def Page():
         )
         VehicleLegend()
     elif sim_choice.value == "B":
-        solara.Text("Trading Simulation")
+        print("Running Trading Simulation")
+        solara.Style(".v-tabs { display: none !important; }")
+        SolaraViz(
+            Trading_model(),
+            components=[
+                make_geospace_component(Trading_draw, zoom=14, height="100vh", width="100vw"),
+            ],
+            model_params=trading_model_params,
+            name="Trading Simulation",
+        )
+        TradingLegend()
