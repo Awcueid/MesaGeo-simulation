@@ -142,27 +142,6 @@ def Trading_draw(agent):
     """Draw function for the trading simulation (bicycles, pedestrians, buildings)."""
     geom_type = agent.geometry.geom_type
 
-    # Buildings
-    if geom_type == "Polygon":
-        if hasattr(agent, "_static_portrayal"):
-            return agent._static_portrayal
-        portrayal = {
-            "color": "#8B4513",
-            "fillColor": "#D2B48C",
-            "fillOpacity": 0.6,
-            "weight": 1,
-        }
-        agent._static_portrayal = portrayal
-        return portrayal
-
-    # Roads (LineString / MultiLineString)
-    if geom_type in ("LineString", "MultiLineString"):
-        if hasattr(agent, "_static_portrayal"):
-            return agent._static_portrayal
-        portrayal = {"color": "gray", "weight": 1, "opacity": 0.4}
-        agent._static_portrayal = portrayal
-        return portrayal
-
     # House agents — color by type
     if isinstance(agent, HouseAgent):
         color_map = {
