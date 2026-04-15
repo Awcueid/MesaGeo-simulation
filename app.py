@@ -6,6 +6,7 @@ from trading_simulation import Trading_model
 from car_agent import test_car
 from bicycle_agent import Bicycle_agent, test_bicycle
 from pedestrian_agent import Pedestrian_agent, test_pedestrian
+from house_agent import HouseAgent
 
 model_params = {
     # sliders for model parameters
@@ -132,8 +133,8 @@ def test_agent_progress_plot(model):
     )
 
 trading_model_params = {
-    "num_of_bicycles": Slider("Number of Bicycles", 50, 0, 500, 1),
-    "num_of_pedestrians": Slider("Number of Pedestrians", 100, 0, 500, 1),
+    "grower_pct": Slider("Grower %", 0.3, 0.0, 1.0, 0.05),
+    "buyer_pct": Slider("Buyer %", 0.4, 0.0, 1.0, 0.05),
 }
 
 
@@ -162,28 +163,38 @@ def Trading_draw(agent):
         agent._static_portrayal = portrayal
         return portrayal
 
-    # Dynamic agents (points)
-    if isinstance(agent, test_bicycle):
-        return {"type": "point", "color": "red", "radius": 5}
-    elif isinstance(agent, test_pedestrian):
-        return {"type": "point", "color": "red", "radius": 5}
-    elif isinstance(agent, Bicycle_agent):
-        return {"type": "point", "color": "green", "radius": 4}
-    elif isinstance(agent, Pedestrian_agent):
-        return {"type": "point", "color": "blue", "radius": 3}
-    else:
-        return {"type": "point", "color": "gray", "radius": 3}
+    # House agents — color by type
+    if isinstance(agent, HouseAgent):
+        color_map = {
+            HouseAgent.GROWER: "#2ecc71",          # green
+            HouseAgent.BUYER: "#e67e22",            # orange
+            HouseAgent.NON_PARTICIPANT: "#95a5a6",  # gray
+        }
+        fill_map = {
+            HouseAgent.GROWER: "#27ae60",
+            HouseAgent.BUYER: "#d35400",
+            HouseAgent.NON_PARTICIPANT: "#7f8c8d",
+        }
+        c = color_map.get(agent.house_type, "gray")
+        f = fill_map.get(agent.house_type, "gray")
+        return {"color": c, "fillColor": f, "fillOpacity": 0.7, "weight": 1}
+
+    return {"type": "point", "color": "gray", "radius": 3}
 
 
-def TradingLegend():
+def TradingLegend(model=None):
     return solara.Markdown(
         """### Trading Simulation Legend
-- **Green**: Bicycles
-- **Blue**: Pedestrians
-- **Red**: Test agents (bicycle/pedestrian)
-- **Brown**: Buildings
+- **Green**: Grower houses (produce goods)
+- **Orange**: Buyer houses (purchase goods)
+- **Gray**: Non-participant houses
 """
     )
+
+
+def TradingDate(model):
+    date_str = model.current_date.strftime("%d/%m/%Y")
+    return solara.Text(f"Date: {date_str}")
 
 
 sim_choice = solara.reactive(None)
@@ -213,8 +224,9 @@ def Page():
             Trading_model(),
             components=[
                 make_geospace_component(Trading_draw, zoom=14, height="100vh", width="100vw"),
+                TradingLegend,
+                TradingDate,
             ],
             model_params=trading_model_params,
             name="Trading Simulation",
         )
-        TradingLegend()
