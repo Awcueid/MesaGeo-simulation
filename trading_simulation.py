@@ -11,12 +11,21 @@ from house_agent import HouseAgent
 class Trading_model(mesa.Model):
     """Trading simulation model with house agents (growers, buyers, non-participants)."""
 
-    def __init__(self, grower_pct=0.3, buyer_pct=0.4):
+    def __init__(self, grower_pct=0.3, buyer_pct=0.4, non_participant_pct=0.3):
         super().__init__()
+
+        # Normalize so the three percentages always sum to 1
+        total = grower_pct + buyer_pct + non_participant_pct
+        if total == 0:
+            grower_pct = buyer_pct = non_participant_pct = 1 / 3
+        else:
+            grower_pct /= total
+            buyer_pct /= total
+            non_participant_pct /= total
 
         self.start_date = datetime(2026, 1, 1)
         self.current_date = self.start_date
-        self.space = mg.GeoSpace(warn_crs_conversion=False)
+        self.space = mg.GeoSpace(warn_crs_conversion=False) 
         self.running = True
 
         # Read in the geojson files
@@ -51,6 +60,16 @@ class Trading_model(mesa.Model):
 
         self.space.add_agents(self.house_agents)
 
+        self.datacollector = DataCollector(
+            model_reporters={
+                "avg_food_inventory": lambda m: (
+                    sum(a.inventory for a in m.house_agents if hasattr(a, "inventory"))
+                    / max(1, sum(1 for a in m.house_agents if hasattr(a, "inventory")))
+                ),
+            }
+        )
+        self.datacollector.collect(self)
+
     def step(self):
         """Run one step of the model — each step is one day."""
         self.current_date += timedelta(days=1)
@@ -58,5 +77,4 @@ class Trading_model(mesa.Model):
         for agent in self.house_agents:
             agent.step()
 
-        if hasattr(self, "datacollector"):
-            self.datacollector.collect(self)
+        self.datacollector.collect(self)

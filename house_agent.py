@@ -16,17 +16,31 @@ class HouseAgent(mg.GeoAgent):
             [self.GROWER, self.BUYER, self.NON_PARTICIPANT]
         )
 
-        # Trading attributes
-        self.inventory = 0.0
-        self.money = 100.0
+        # Food attributes
+        self.inventory = 0.0  # kg of fresh produce stored
 
         if self.house_type == self.GROWER:
-            self.production_rate = random.uniform(1.0, 5.0)
-            self.sell_price = random.uniform(5.0, 15.0)
+            
+            # Arbitrary production
+            self.production_min = random.uniform(0.3, 0.8)
+            self.production_max = random.uniform(1.2, 2.5)
+            
+            # Arbitrary consumption
+            self.consumption_min = random.uniform(0.3, 0.6)
+            self.consumption_max = random.uniform(0.8, 1.5)
+            
+            # Starting food
+            self.inventory = random.uniform(2.0, 5.0)
         elif self.house_type == self.BUYER:
-            self.demand_rate = random.uniform(1.0, 3.0)
-            self.max_buy_price = random.uniform(8.0, 20.0)
-        # Non-participants have no trading attributes
+            # Arbitrary demand
+            self.demand_min = random.uniform(0.5, 1.0)
+            self.demand_max = random.uniform(1.5, 3.0)
+            
+            # Arbitrary consumption
+            self.consumption_min = random.uniform(0.3, 0.6)
+            self.consumption_max = random.uniform(0.8, 1.5)
+            # Starting food
+            self.inventory = random.uniform(0.0, 2.0)
 
     def step(self):
         if self.house_type == self.GROWER:
@@ -35,25 +49,34 @@ class HouseAgent(mg.GeoAgent):
             self._buyer_step()
         # Non-participants do nothing
 
+    def _apply_consumption(self):
+        """Apply daily household consumption — amount varies each day."""
+        daily_consumption = random.uniform(self.consumption_min, self.consumption_max)
+        self.inventory -= daily_consumption
+        # Cannot go below zero
+        self.inventory = max(0.0, self.inventory)
+
     def _grower_step(self):
-        """Produce goods each step."""
-        self.inventory += self.production_rate
+        """Produce fresh food from backyard garden, then consume."""
+        # Harvest varies day-to-day (weather, season, etc.)
+        daily_production = random.uniform(self.production_min, self.production_max)
+        self.inventory += daily_production
+        # Apply household consumption
+        self._apply_consumption()
 
     def _buyer_step(self):
-        """Try to buy from a nearby grower."""
+        """Try to receive food from a grower, then consume."""
         growers = [
             a for a in self.model.house_agents
             if a.house_type == self.GROWER and a.inventory > 0
         ]
-        if not growers:
-            return
-
-        # Pick a random grower to buy from
-        seller = random.choice(growers)
-        amount = min(self.demand_rate, seller.inventory)
-        cost = amount * seller.sell_price
-
-        if cost <= self.money:
+        if growers:
+            seller = random.choice(growers)
+            # Demand varies day-to-day
+            daily_demand = random.uniform(self.demand_min, self.demand_max)
+            amount = min(daily_demand, seller.inventory)
             seller.inventory -= amount
-            seller.money += cost
-            self.money -= cost
+            self.inventory += amount
+
+        # Apply household consumption
+        self._apply_consumption()

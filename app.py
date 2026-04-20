@@ -135,6 +135,7 @@ def test_agent_progress_plot(model):
 trading_model_params = {
     "grower_pct": Slider("Grower %", 0.3, 0.0, 1.0, 0.05),
     "buyer_pct": Slider("Buyer %", 0.4, 0.0, 1.0, 0.05),
+    "non_participant_pct": Slider("Non-Participant %", 0.3, 0.0, 1.0, 0.05),
 }
 
 
@@ -176,6 +177,33 @@ def TradingDate(model):
     return solara.Text(f"Date: {date_str}")
 
 
+def AvgFoodChart(model):
+    """Line chart tracking average food inventory across all households over time."""
+    if not hasattr(model, "datacollector"):
+        return solara.Text("No data collector available")
+
+    df = model.datacollector.get_model_vars_dataframe()
+    if df.empty:
+        return solara.Text("No data yet")
+
+    df = df.reset_index().rename(columns={"index": "Day"})
+    return solara.FigureMatplotlib(
+        __avg_food_figure(df)
+    )
+
+
+def __avg_food_figure(df):
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(5, 2.5))
+    ax.plot(df["Day"], df["avg_food_inventory"], color="#2ecc71", linewidth=1.5)
+    ax.set_xlabel("Day")
+    ax.set_ylabel("Avg food (kg)")
+    ax.set_title("Average household food inventory")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    fig.tight_layout()
+    return fig
+
+
 sim_choice = solara.reactive(None)
 
 @solara.component
@@ -204,6 +232,7 @@ def Page():
             components=[
                 make_geospace_component(Trading_draw, zoom=14, height="100vh", width="100vw"),
                 TradingLegend,
+                AvgFoodChart,
                 TradingDate,
             ],
             model_params=trading_model_params,
