@@ -136,6 +136,8 @@ trading_model_params = {
     "grower_pct": Slider("Grower %", 0.3, 0.0, 1.0, 0.05),
     "buyer_pct": Slider("Buyer %", 0.4, 0.0, 1.0, 0.05),
     "non_participant_pct": Slider("Non-Participant %", 0.3, 0.0, 1.0, 0.05),
+    "grower_production_rate": Slider("Grower Production Rate (kg/day)", 1.5, 0.1, 5.0, 0.1),
+    "consumption_rate": Slider("Daily Consumption Rate (kg/day)", 1.0, 0.1, 3.0, 0.1),
 }
 
 

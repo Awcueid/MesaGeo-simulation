@@ -11,7 +11,7 @@ from house_agent import HouseAgent
 class Trading_model(mesa.Model):
     """Trading simulation model with house agents (growers, buyers, non-participants)."""
 
-    def __init__(self, grower_pct=0.3, buyer_pct=0.4, non_participant_pct=0.3):
+    def __init__(self, grower_pct=0.3, buyer_pct=0.4, non_participant_pct=0.3, grower_production_rate=1.5, consumption_rate=1.0):
         super().__init__()
 
         # Normalize so the three percentages always sum to 1
@@ -22,6 +22,10 @@ class Trading_model(mesa.Model):
             grower_pct /= total
             buyer_pct /= total
             non_participant_pct /= total
+        
+        # Store configurable rates
+        self.grower_production_rate = grower_production_rate
+        self.consumption_rate = consumption_rate
 
         self.start_date = datetime(2026, 1, 1)
         self.current_date = self.start_date
@@ -54,6 +58,8 @@ class Trading_model(mesa.Model):
                 geometry=row.geometry,
                 crs=buildings_comp.crs,
                 house_type=house_type,
+                grower_production_rate=self.grower_production_rate,
+                consumption_rate=self.consumption_rate,
             )
             agent.OBJECTID = row["OBJECTID"]
             self.house_agents.append(agent)

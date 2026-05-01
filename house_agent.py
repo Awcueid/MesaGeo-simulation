@@ -9,7 +9,7 @@ class HouseAgent(mg.GeoAgent):
     BUYER = "buyer"
     NON_PARTICIPANT = "non_participant"
 
-    def __init__(self, model, geometry, crs, house_type=None):
+    def __init__(self, model, geometry, crs, house_type=None, grower_production_rate=1.5, consumption_rate=1.0):
         super().__init__(model, geometry, crs)
 
         self.house_type = house_type or random.choice(
@@ -21,24 +21,24 @@ class HouseAgent(mg.GeoAgent):
 
         if self.house_type == self.GROWER:
             
-            # Arbitrary production
-            self.production_min = random.uniform(0.3, 0.8)
-            self.production_max = random.uniform(1.2, 2.5)
+            # Production Rate
+            self.production_min = grower_production_rate * 0.6
+            self.production_max = grower_production_rate * 1.4
             
-            # Arbitrary consumption
-            self.consumption_min = random.uniform(0.3, 0.6)
-            self.consumption_max = random.uniform(0.8, 1.5)
+            # Consumption Rate
+            self.consumption_min = consumption_rate * 0.6
+            self.consumption_max = consumption_rate * 1.4
             
             # Starting food
             self.inventory = random.uniform(2.0, 5.0)
         elif self.house_type == self.BUYER:
-            # Arbitrary demand
-            self.demand_min = random.uniform(0.5, 1.0)
-            self.demand_max = random.uniform(1.5, 3.0)
+            # Consumption Rate
+            self.demand_min = consumption_rate * 0.8
+            self.demand_max = consumption_rate * 2.0
             
-            # Arbitrary consumption
-            self.consumption_min = random.uniform(0.3, 0.6)
-            self.consumption_max = random.uniform(0.8, 1.5)
+            # Consumption Rate
+            self.consumption_min = consumption_rate * 0.6
+            self.consumption_max = consumption_rate * 1.4
             # Starting food
             self.inventory = random.uniform(0.0, 2.0)
 
