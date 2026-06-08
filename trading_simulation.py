@@ -11,18 +11,18 @@ from house_agent import HouseAgent
 class Trading_model(mesa.Model):
     """Trading simulation model with house agents (growers, buyers, non-participants)."""
 
-    def __init__(self, grower_pct=0.3, buyer_pct=0.4, non_participant_pct=0.3, grower_production_rate=1.5, consumption_rate=1.0):
+    def __init__(self, non_participant_pct=30, grower_share_pct=50, grower_production_rate=1.5, consumption_rate=1.0):
         super().__init__()
 
-        # Normalize so the three percentages always sum to 1
-        total = grower_pct + buyer_pct + non_participant_pct
-        if total == 0:
-            grower_pct = buyer_pct = non_participant_pct = 1 / 3
-        else:
-            grower_pct /= total
-            buyer_pct /= total
-            non_participant_pct /= total
-        
+        # Convert UI percentages to internal proportions.
+        non_participant_pct = max(0.0, min(100.0, non_participant_pct)) / 100.0
+        grower_share_pct = max(0.0, min(100.0, grower_share_pct)) / 100.0
+
+
+        participant_pct = 1.0 - non_participant_pct
+        grower_pct = participant_pct * grower_share_pct
+        buyer_pct = participant_pct * (1.0 - grower_share_pct)
+
         # Store configurable rates
         self.grower_production_rate = grower_production_rate
         self.consumption_rate = consumption_rate
