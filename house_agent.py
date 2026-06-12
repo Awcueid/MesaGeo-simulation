@@ -65,13 +65,17 @@ class HouseAgent(mg.GeoAgent):
         self._apply_consumption()
 
     def _buyer_step(self):
-        """Try to receive food from a grower, then consume."""
+        """Try to receive food from one of the nearest 5 growers, then consume."""
         growers = [
             a for a in self.model.house_agents
             if a.house_type == self.GROWER and a.inventory > 0
         ]
         if growers:
-            seller = random.choice(growers)
+            # Sort growers by distance to this buyer (nearest first)
+            growers_by_distance = sorted(growers,key=lambda g: self.geometry.distance(g.geometry))
+            
+            # Pick randomly from the nearest 5
+            seller = random.choice(growers_by_distance[:5])
             # Demand varies day-to-day
             daily_demand = random.uniform(self.demand_min, self.demand_max)
             amount = min(daily_demand, seller.inventory)
