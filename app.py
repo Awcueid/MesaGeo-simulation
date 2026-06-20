@@ -135,7 +135,6 @@ def test_agent_progress_plot(model):
 trading_model_params = {
     "non_participant_pct": Slider("Non-Participant", 30, 0, 100, 1),
     "grower_share_pct": Slider("Grower Percentage", 50, 0, 100, 1),
-    "grower_production_rate": Slider("Grower Production Rate", 1.5, 0.1, 5.0, 0.1),
     "consumption_rate": Slider("Daily Consumption Rate", 1.0, 0.1, 3.0, 0.1),
 }
 

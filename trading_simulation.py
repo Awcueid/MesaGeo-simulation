@@ -11,7 +11,7 @@ from house_agent import HouseAgent
 class Trading_model(mesa.Model):
     """Trading simulation model with house agents (growers, buyers, non-participants)."""
 
-    def __init__(self, non_participant_pct=30, grower_share_pct=50, grower_production_rate=1.5, consumption_rate=1.0):
+    def __init__(self, non_participant_pct=30, grower_share_pct=50, consumption_rate=1.0):
         super().__init__()
 
         # Convert UI percentages to internal proportions.
@@ -24,7 +24,6 @@ class Trading_model(mesa.Model):
         buyer_pct = participant_pct * (1.0 - grower_share_pct)
 
         # Store configurable rates
-        self.grower_production_rate = grower_production_rate
         self.consumption_rate = consumption_rate
 
         self.start_date = datetime(2026, 1, 1)
@@ -58,7 +57,6 @@ class Trading_model(mesa.Model):
                 geometry=row.geometry,
                 crs=buildings_comp.crs,
                 house_type=house_type,
-                grower_production_rate=self.grower_production_rate,
                 consumption_rate=self.consumption_rate,
             )
             agent.OBJECTID = row["OBJECTID"]
@@ -69,7 +67,7 @@ class Trading_model(mesa.Model):
         self.datacollector = DataCollector(
             model_reporters={
                 "avg_food_inventory": lambda m: (
-                    sum(a.inventory for a in m.house_agents if hasattr(a, "inventory"))
+                    sum(sum(a.inventory.values()) for a in m.house_agents if hasattr(a, "inventory"))
                     / max(1, sum(1 for a in m.house_agents if hasattr(a, "inventory")))
                 ),
             }
