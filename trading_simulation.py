@@ -11,7 +11,7 @@ from house_agent import HouseAgent
 class Trading_model(mesa.Model):
     """Trading simulation model with house agents (growers, buyers, non-participants)."""
 
-    def __init__(self, non_participant_pct=30, grower_share_pct=50, consumption_rate=1.0):
+    def __init__(self, non_participant_pct=30, grower_share_pct=20, consumption_rate=1.0):
         super().__init__()
 
         # Convert UI percentages to internal proportions.

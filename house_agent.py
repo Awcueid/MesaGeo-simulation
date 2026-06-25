@@ -8,39 +8,61 @@ class HouseAgent(mg.GeoAgent):
     GROWER = "grower"
     BUYER = "buyer"
     NON_PARTICIPANT = "non_participant"
+    
+    # Crop types and production/consumption rates (kg per day)
+    CROPS = {
+        'tomatoes': {
+            'production_min': 6.0,
+            'production_max': 12.0,
+            'consumption_min': 0.100,
+            'consumption_max': 0.125,
+        },
+        'lettuce': {
+            'production_min': 3.0,
+            'production_max': 5.0,
+            'consumption_min': 0.055,
+            'consumption_max': 0.075,
+        },
+        'herbs': {
+            'production_min': 1.0,
+            'production_max': 2.0,
+            'consumption_min': 0.010,
+            'consumption_max': 0.020,
+        },
+    }
 
-    def __init__(self, model, geometry, crs, house_type=None, grower_production_rate=1.5, consumption_rate=1.0):
+    def __init__(self, model, geometry, crs, house_type=None, consumption_rate=1.0):
         super().__init__(model, geometry, crs)
 
         self.house_type = house_type or random.choice(
             [self.GROWER, self.BUYER, self.NON_PARTICIPANT]
         )
 
-        # Food attributes
-        self.inventory = 0.0  # kg of fresh produce stored
+        # Food attributes - inventory for each crop type
+        self.inventory = {
+            'tomatoes': 0.0,
+            'lettuce': 0.0,
+            'herbs': 0.0
+        }
 
         if self.house_type == self.GROWER:
-            
-            # Production Rate
-            self.production_min = grower_production_rate * 0.6
-            self.production_max = grower_production_rate * 1.4
-            
-            # Consumption Rate
-            self.consumption_min = consumption_rate * 0.6
-            self.consumption_max = consumption_rate * 1.4
-            
-            # Starting food
-            self.inventory = random.uniform(2.0, 5.0)
+            # Starting inventory for growers
+            self.inventory = {
+                'tomatoes': random.uniform(5.0, 10.0),
+                'lettuce': random.uniform(3.0, 6.0),
+                'herbs': random.uniform(1.0, 3.0)
+            }
         elif self.house_type == self.BUYER:
             # Consumption Rate
             self.demand_min = consumption_rate * 0.8
             self.demand_max = consumption_rate * 2.0
             
-            # Consumption Rate
-            self.consumption_min = consumption_rate * 0.6
-            self.consumption_max = consumption_rate * 1.4
-            # Starting food
-            self.inventory = random.uniform(0.0, 2.0)
+            # Starting inventory for buyers
+            self.inventory = {
+                'tomatoes': random.uniform(5.0, 10.0),
+                'lettuce': random.uniform(3.0, 6.0),
+                'herbs': random.uniform(1.0, 3.0)
+            }
 
     def step(self):
         if self.house_type == self.GROWER:
