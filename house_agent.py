@@ -31,38 +31,33 @@ class HouseAgent(mg.GeoAgent):
         },
     }
 
-    def __init__(self, model, geometry, crs, house_type=None, consumption_rate=1.0):
+    def __init__(self, model, geometry, crs, house_type=None, consumption_rate=1.0, specialized_crop=None):
         super().__init__(model, geometry, crs)
 
-        self.house_type = house_type or random.choice(
-            [self.GROWER, self.BUYER, self.NON_PARTICIPANT]
-        )
+        self.house_type = house_type or random.choice([self.GROWER, self.BUYER, self.NON_PARTICIPANT])
+        self.specialized_crop = specialized_crop or random.choice(list(self.CROPS.keys()))
+
+        crop_def = self.CROPS[self.specialized_crop]
+        self.production_min = crop_def['production_min']
+        self.production_max = crop_def['production_max']
+        self.consumption_min = crop_def['consumption_min']
+        self.consumption_max = crop_def['consumption_max']
 
         # Food attributes - inventory for each crop type
         self.inventory = {
-            'tomatoes': 0.0,
-            'lettuce': 0.0,
-            'herbs': 0.0
+            crop_name: crop_info['consumption_max']
+            for crop_name, crop_info in self.CROPS.items()
         }
 
         if self.house_type == self.GROWER:
-            # Starting inventory for growers
-            self.inventory = {
-                'tomatoes': random.uniform(5.0, 10.0),
-                'lettuce': random.uniform(3.0, 6.0),
-                'herbs': random.uniform(1.0, 3.0)
-            }
+            
+            self.inventory[self.specialized_crop] = random.uniform(self.production_min, self.production_max)
+            
         elif self.house_type == self.BUYER:
-            # Consumption Rate
+            
             self.demand_min = consumption_rate * 0.8
             self.demand_max = consumption_rate * 2.0
-            
-            # Starting inventory for buyers
-            self.inventory = {
-                'tomatoes': random.uniform(5.0, 10.0),
-                'lettuce': random.uniform(3.0, 6.0),
-                'herbs': random.uniform(1.0, 3.0)
-            }
+            self.inventory[self.specialized_crop] = random.uniform(self.production_min, self.production_max)
 
     def step(self):
         if self.house_type == self.GROWER:
@@ -72,37 +67,23 @@ class HouseAgent(mg.GeoAgent):
         # Non-participants do nothing
 
     def _apply_consumption(self):
-        """Apply daily household consumption — amount varies each day."""
-        daily_consumption = random.uniform(self.consumption_min, self.consumption_max)
-        self.inventory -= daily_consumption
-        # Cannot go below zero
-        self.inventory = max(0.0, self.inventory)
+        """Apply daily household consumption for all crops"""
+        for crop_name, crop_info in self.CROPS.items():
+            daily_consumption = random.uniform(crop_info['consumption_min'],crop_info['consumption_max'],)
+            self.inventory[crop_name] = max(
+                0.0,
+                self.inventory[crop_name] - daily_consumption,
+            )
 
     def _grower_step(self):
         """Produce fresh food from backyard garden, then consume."""
-        # Harvest varies day-to-day (weather, season, etc.)
+        
+        #calculate production
         daily_production = random.uniform(self.production_min, self.production_max)
-        self.inventory += daily_production
-        # Apply household consumption
+        
+        self.inventory[self.specialized_crop] += daily_production
         self._apply_consumption()
 
     def _buyer_step(self):
-        """Try to receive food from one of the nearest 5 growers, then consume."""
-        growers = [
-            a for a in self.model.house_agents
-            if a.house_type == self.GROWER and a.inventory > 0
-        ]
-        if growers:
-            # Sort growers by distance to this buyer (nearest first)
-            growers_by_distance = sorted(growers,key=lambda g: self.geometry.distance(g.geometry))
-            
-            # Pick randomly from the nearest 5
-            seller = random.choice(growers_by_distance[:5])
-            # Demand varies day-to-day
-            daily_demand = random.uniform(self.demand_min, self.demand_max)
-            amount = min(daily_demand, seller.inventory)
-            seller.inventory -= amount
-            self.inventory += amount
 
-        # Apply household consumption
         self._apply_consumption()
