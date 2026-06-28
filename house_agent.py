@@ -54,10 +54,8 @@ class HouseAgent(mg.GeoAgent):
             self.inventory[self.specialized_crop] = random.uniform(self.production_min, self.production_max)
             
         elif self.house_type == self.BUYER:
-            
-            self.demand_min = consumption_rate * 0.8
-            self.demand_max = consumption_rate * 2.0
-            self.inventory[self.specialized_crop] = random.uniform(self.production_min, self.production_max)
+
+            self.inventory[self.specialized_crop] = random.uniform(self.consumption_min, self.consumption_max)
 
     def step(self):
         if self.house_type == self.GROWER:
@@ -85,5 +83,36 @@ class HouseAgent(mg.GeoAgent):
         self._apply_consumption()
 
     def _buyer_step(self):
+        """Buy food from nearby growers when a crop reserve gets too low, then consume."""
+        for crop_name, crop_info in self.CROPS.items():
+            reserve_target = crop_info['consumption_max'] * 2.0
+            if self.inventory[crop_name] >= reserve_target:
+                continue
+
+            growers = [
+                a for a in self.model.house_agents
+                if a.house_type == self.GROWER and a.inventory.get(crop_name, 0.0) > 0
+            ]
+            if not growers:
+                continue
+
+            growers_by_distance = sorted(
+                growers,
+                key=lambda g: self.geometry.distance(g.geometry),
+            )
+
+            shortage = reserve_target - self.inventory[crop_name]
+            for seller in growers_by_distance[:3]:
+                if shortage <= 0:
+                    break
+
+                available = seller.inventory.get(crop_name, 0.0)
+                if available <= 0:
+                    continue
+
+                amount = min(shortage, available)
+                seller.inventory[crop_name] -= amount
+                self.inventory[crop_name] += amount
+                shortage -= amount
 
         self._apply_consumption()

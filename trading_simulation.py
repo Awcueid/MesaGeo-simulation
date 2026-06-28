@@ -43,7 +43,13 @@ class Trading_model(mesa.Model):
         # Set up buildings as house agents
         buildings_comp = gpd.read_file(buildings_path).to_crs(epsg=3857)
         self.house_agents = []
-        for _, row in buildings_comp.iterrows():
+        
+        # assign crop type to houses
+        crop_type = ["tomatoes", "lettuce", "herbs"]
+        crop_assignments = [crop_type[i % len(crop_type)] for i in range(len(buildings_comp))]
+        random.shuffle(crop_assignments)
+
+        for x, (_, row) in enumerate(buildings_comp.iterrows()):
             roll = random.random()
             if roll < grower_pct:
                 house_type = HouseAgent.GROWER
@@ -58,6 +64,7 @@ class Trading_model(mesa.Model):
                 crs=buildings_comp.crs,
                 house_type=house_type,
                 consumption_rate=self.consumption_rate,
+                specialized_crop=crop_assignments[x],
             )
             agent.OBJECTID = row["OBJECTID"]
             self.house_agents.append(agent)
