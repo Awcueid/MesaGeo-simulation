@@ -1,3 +1,4 @@
+import random
 import solara
 from mesa.visualization import Slider, SolaraViz
 from mesa_geo.visualization import make_geospace_component
@@ -192,6 +193,39 @@ def AvgFoodChart(model):
     )
 
 
+def BuyerInventoryChart(model):
+    """Show a bar chart of a randomly selected buyer's crop inventory."""
+    buyers = [a for a in model.house_agents if a.house_type == HouseAgent.BUYER]
+
+    if not hasattr(model, "selected_buyer_id"):
+        selected = random.choice(buyers)
+        model.selected_buyer_id = id(selected)
+    else:
+        selected = next((a for a in buyers if id(a) == model.selected_buyer_id), None)
+        if selected is None:
+            selected = random.choice(buyers)
+            model.selected_buyer_id = id(selected)
+
+    return solara.FigureMatplotlib(__buyer_inventory_figure(selected))
+
+
+def __buyer_inventory_figure(buyer):
+    import matplotlib.pyplot as plt
+
+    crops = ["tomatoes", "lettuce", "herbs"]
+    values = [buyer.inventory.get(crop, 0.0) for crop in crops]
+
+    fig, ax = plt.subplots(figsize=(5, 2.5))
+    ax.bar(crops, values, color=["#e74c3c", "#2ecc71", "#f39c12"])
+    ax.set_xlabel("Crop")
+    ax.set_ylabel("Inventory (kg)")
+    ax.set_title("Selected buyer inventory")
+    ax.set_ylim(0.0, 0.3)
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    fig.tight_layout()
+    return fig
+
+
 def __avg_food_figure(df):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(5, 2.5))
@@ -233,6 +267,7 @@ def Page():
                 make_geospace_component(Trading_draw, zoom=14, height="100vh", width="100vw"),
                 TradingLegend,
                 AvgFoodChart,
+                BuyerInventoryChart,
                 TradingDate,
             ],
             model_params=trading_model_params,
